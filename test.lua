@@ -1029,6 +1029,7 @@ catchButtonStroke = Instance.new("UIStroke", catchButton)
 catchButtonStroke.Color = THEME.Border
 catchButtonStroke.Thickness = 1
 catchButtonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+catchButtonStroke.Enabled = false
 
 catchButton.BackgroundColor3 = THEME.Card
 catchButton.TextColor3 = THEME.ActionTextMuted
@@ -1552,7 +1553,7 @@ end)
 catchButton.MouseLeave:Connect(function()
 	if selectedFish then
 		TweenService:Create(catchButton, TweenInfo.new(0.15), {
-			BackgroundColor3 = THEME.AccentDark
+			BackgroundColor3 = THEME.Accent
 		}):Play()
 
 		catchButton.TextColor3 = THEME.ActionText
@@ -1965,6 +1966,7 @@ collectTreasureButtonStroke = Instance.new("UIStroke", collectTreasureButton)
 collectTreasureButtonStroke.Color = THEME.Border
 collectTreasureButtonStroke.Thickness = 1
 collectTreasureButtonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+collectTreasureButtonStroke.Enabled = false
 
 collectTreasureButton.BackgroundColor3 = THEME.Card
 collectTreasureButton.TextColor3 = THEME.ActionTextMuted
@@ -2487,7 +2489,7 @@ end)
 collectTreasureButton.MouseLeave:Connect(function()
 	if selectedTreasure then
 		TweenService:Create(collectTreasureButton, TweenInfo.new(0.15), {
-			BackgroundColor3 = THEME.AccentDark
+			BackgroundColor3 = THEME.Accent
 		}):Play()
 
 		collectTreasureButton.TextColor3 = THEME.ActionText
