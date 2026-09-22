@@ -743,9 +743,10 @@ local previewWorld
 local previewClone
 local previewBasePivot
 
-local previewRotation = 0
+local previewYaw = 0
+local previewPitch = 0
 local previewDragging = false
-local previewLastX = 0
+local previewLastPosition = Vector2.zero
 
 local fishButtons = {}
 
@@ -1360,12 +1361,12 @@ local function setPreviewRotation()
 		return
 	end
 
-	local rotation =
-		CFrame.Angles(
-			0,
-			math.rad(previewRotation),
-			0
-		)
+	-- Apply both axes around the visible model center, which is placed at origin.
+	local rotation = CFrame.Angles(
+		math.rad(previewPitch),
+		math.rad(previewYaw),
+		0
+	)
 
 	local pivot =
 		rotation
@@ -1385,7 +1386,8 @@ updatePreview = function(fishName, rarity)
 	previewClone = nil
 	previewBasePivot = nil
 	viewportCamera = nil
-	previewRotation = 0
+	previewYaw = 0
+	previewPitch = 0
 	previewDragging = false
 
 	local targetFish = fishFolder:FindFirstChild(fishName)
@@ -1417,7 +1419,8 @@ updatePreview = function(fishName, rarity)
 
 	preparePreviewObject(clone)
 
-	local centeredCF, centeredSize = centerPreviewObject(clone)
+	-- Center the visible fish, ignoring invisible roots and hitboxes.
+	local centeredCF, centeredSize = centerVisiblePreviewObject(clone)
 
 	if not centeredCF or not centeredSize then
 		previewTitle.Text = "PREVIEW ERROR"
@@ -1459,9 +1462,9 @@ updatePreview = function(fishName, rarity)
 	local sideRotation = CFrame.Angles(0, math.rad(90), 0)
 
 	if clone:IsA("Model") then
-		previewBasePivot = clone:GetPivot() * sideRotation
+		previewBasePivot = sideRotation * clone:GetPivot()
 	elseif clone:IsA("BasePart") then
-		previewBasePivot = clone.CFrame * sideRotation
+		previewBasePivot = sideRotation * clone.CFrame
 	end
 
 	setPreviewRotation()
@@ -1482,7 +1485,7 @@ viewport.InputBegan:Connect(function(input)
 		or input.UserInputType == Enum.UserInputType.Touch then
 
 		previewDragging = true
-		previewLastX = input.Position.X
+		previewLastPosition = Vector2.new(input.Position.X, input.Position.Y)
 	end
 end)
 
@@ -1494,17 +1497,12 @@ UIS.InputChanged:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseMovement
 		or input.UserInputType == Enum.UserInputType.Touch then
 
-		local currentX = input.Position.X
-		local delta = currentX - previewLastX
+		local currentPosition = Vector2.new(input.Position.X, input.Position.Y)
+		local delta = currentPosition - previewLastPosition
 
-		previewLastX = currentX
-		previewRotation += delta * 0.6
-
-		if previewRotation > 360 then
-			previewRotation -= 360
-		elseif previewRotation < -360 then
-			previewRotation += 360
-		end
+		previewLastPosition = currentPosition
+		previewYaw = (previewYaw + delta.X * 0.6) % 360
+		previewPitch = (previewPitch - delta.Y * 0.6) % 360
 
 		setPreviewRotation()
 	end
