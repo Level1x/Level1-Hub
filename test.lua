@@ -2136,7 +2136,6 @@ local function teleportTo(position)
 	end
 end
 
-```lua
 local teleportPanel = Instance.new("Frame")
 teleportPanel.Size = UDim2.new(1, 0, 1, 0)
 teleportPanel.BackgroundColor3 = THEME.Sidebar
@@ -2351,7 +2350,6 @@ task.defer(function()
 		teleportLayout.AbsoluteContentSize.Y + 30
 	)
 end)
-```
 
 
 local function switchTab(name)
