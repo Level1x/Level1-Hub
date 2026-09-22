@@ -43,21 +43,21 @@ local pageReferences = {}
 -- ============================================================================
 
 local THEME = {
-	Background = Color3.fromRGB(13, 15, 22),
-	Sidebar = Color3.fromRGB(16, 18, 27),
-	Panel = Color3.fromRGB(18, 20, 30),
+	Background = Color3.fromRGB(8, 17, 29),
+	Sidebar = Color3.fromRGB(12, 26, 40),
+	Panel = Color3.fromRGB(10, 23, 36),
 
-	Card = Color3.fromRGB(27, 30, 42),
-	CardHover = Color3.fromRGB(35, 39, 54),
-	CardSelected = Color3.fromRGB(39, 44, 62),
+	Card = Color3.fromRGB(18, 36, 52),
+	CardHover = Color3.fromRGB(25, 51, 68),
+	CardSelected = Color3.fromRGB(22, 62, 78),
 
-	Accent = Color3.fromRGB(0, 185, 255),
-	AccentDark = Color3.fromRGB(0, 130, 190),
+	Accent = Color3.fromRGB(85, 225, 219),
+	AccentDark = Color3.fromRGB(29, 151, 167),
 
-	Text = Color3.fromRGB(245, 247, 255),
-	TextMuted = Color3.fromRGB(130, 136, 153),
+	Text = Color3.fromRGB(235, 246, 251),
+	TextMuted = Color3.fromRGB(151, 176, 191),
 
-	Border = Color3.fromRGB(35, 39, 53),
+	Border = Color3.fromRGB(35, 62, 79),
 
 	Common = Color3.fromRGB(170, 175, 185),
 	Rare = Color3.fromRGB(65, 225, 120),
@@ -74,6 +74,70 @@ local THEME = {
 
 local FONT_REGULAR = Enum.Font.Gotham
 local FONT_BOLD = Enum.Font.GothamBold
+
+-- Presentation helpers: appearance and motion only.
+local function addSurfaceGradient(target, rotation)
+    local gradient = Instance.new("UIGradient")
+    gradient.Name = "SurfaceGradient"
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(192, 215, 235)),
+    })
+    gradient.Rotation = rotation or 90
+    gradient.Parent = target
+end
+
+local function bindPressFeedback(button)
+    local scale = Instance.new("UIScale")
+    scale.Name = "PressScale"
+    scale.Parent = button
+    local activeTween
+    local function animate(value)
+        if activeTween then activeTween:Cancel() end
+        activeTween = TweenService:Create(scale,
+            TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Scale = value})
+        activeTween:Play()
+    end
+    button.MouseButton1Down:Connect(function() animate(0.975) end)
+    button.MouseButton1Up:Connect(function() animate(1) end)
+    button.MouseLeave:Connect(function() animate(1) end)
+end
+
+local function bindSearchFocus(textBox, stroke)
+    local focusTween
+    local function animate(color, thickness)
+        if focusTween then focusTween:Cancel() end
+        focusTween = TweenService:Create(stroke, TweenInfo.new(0.18), {
+            Color = color, Thickness = thickness,
+        })
+        focusTween:Play()
+    end
+    textBox.Focused:Connect(function() animate(THEME.Accent, 1.5) end)
+    textBox.FocusLost:Connect(function() animate(THEME.Border, 1) end)
+end
+
+local pagePositions = {}
+local pageTweens = {}
+local function presentPage(element, visible)
+    local restingPosition = pagePositions[element] or element.Position
+    pagePositions[element] = restingPosition
+    if pageTweens[element] then
+        pageTweens[element]:Cancel()
+        pageTweens[element] = nil
+    end
+    local entering = visible and not element.Visible
+    element.Visible = visible
+    element.Position = restingPosition
+    if entering then
+        element.Position = restingPosition + UDim2.fromOffset(0, 8)
+        local tween = TweenService:Create(element,
+            TweenInfo.new(0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+            {Position = restingPosition})
+        pageTweens[element] = tween
+        tween:Play()
+    end
+end
 
 local function getRarityColor(rarity)
 	return THEME[rarity] or THEME.Unknown
@@ -93,23 +157,24 @@ gui.Parent = playerGui
 local frame = Instance.new("Frame")
 frame.Name = "Main"
 frame.Size = UDim2.new(0, 0, 0, 0)
-frame.Position = UDim2.new(0.5, 450, 0.5, -280)
-frame.AnchorPoint = Vector2.new(1, 0)
+frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
 frame.BackgroundColor3 = THEME.Background
 frame.BorderSizePixel = 0
 frame.ClipsDescendants = true
 frame.Parent = gui
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 20)
 
 local frameStroke = Instance.new("UIStroke", frame)
 frameStroke.Color = THEME.Border
-frameStroke.Thickness = 1.5
+frameStroke.Thickness = 1
+addSurfaceGradient(frame, 35)
 
 
 TweenService:Create(
 	frame,
-	TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+	TweenInfo.new(0.38, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
 	{
 		Size = normalSize
 	}
@@ -125,20 +190,30 @@ header.Size = UDim2.new(1, 0, 0, 68)
 header.BackgroundTransparency = 1
 header.Parent = frame
 
+local brandMark = Instance.new("Frame")
+brandMark.Name = "BrandMark"
+brandMark.Size = UDim2.fromOffset(10, 24)
+brandMark.Position = UDim2.fromOffset(24, 20)
+brandMark.BackgroundColor3 = THEME.Accent
+brandMark.BorderSizePixel = 0
+brandMark.Parent = header
+Instance.new("UICorner", brandMark).CornerRadius = UDim.new(1, 0)
+addSurfaceGradient(brandMark, 90)
+
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(0, 300, 0, 30)
-title.Position = UDim2.new(0, 25, 0, 10)
+title.Size = UDim2.new(0, 165, 0, 30)
+title.Position = UDim2.new(0, 46, 0, 10)
 title.BackgroundTransparency = 1
-title.Text = "🐟  LEVEL1 HUB"
+title.Text = "LEVEL1 HUB"
 title.TextColor3 = THEME.Text
 title.Font = FONT_BOLD
-title.TextSize = 21
+title.TextSize = 20
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = header
 
 local gameTitle = Instance.new("TextLabel")
 gameTitle.Size = UDim2.new(0, 400, 0, 18)
-gameTitle.Position = UDim2.new(0, 27, 0, 38)
+gameTitle.Position = UDim2.new(0, 46, 0, 38)
 gameTitle.BackgroundTransparency = 1
 gameTitle.Text = "BECOME A DEEP SEA EXPLORER"
 gameTitle.TextColor3 = THEME.TextMuted
@@ -165,17 +240,19 @@ Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 9)
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0, 34, 0, 34)
 close.Position = UDim2.new(1, -48, 0, 16)
-close.Text = "X"
+close.Text = "×"
 close.BackgroundColor3 = THEME.Card
 close.TextColor3 = THEME.TextMuted
 close.Font = FONT_BOLD
-close.TextSize = 13
+close.TextSize = 20
 close.BorderSizePixel = 0
 close.AutoButtonColor = false
 close.ZIndex = 5
 close.Parent = frame
 
-Instance.new("UICorner", close).CornerRadius = UDim.new(0, 9)
+Instance.new("UICorner", close).CornerRadius = UDim.new(0, 10)
+bindPressFeedback(close)
+bindPressFeedback(minimize)
 
 minimize.MouseEnter:Connect(function()
 	TweenService:Create(minimize, TweenInfo.new(0.15), {
@@ -275,7 +352,7 @@ minimize.MouseButton1Click:Connect(function()
 		tabBar.Visible = false
         for _, elements in pairs(pageReferences) do
             for _, element in ipairs(elements) do
-                element.Visible = false
+                presentPage(element, false)
             end
         end
 
@@ -357,7 +434,7 @@ tabPadding.Parent = tabBar
 local function createTab(name, order)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(0, 120, 1, -10)
+	button.Size = UDim2.new(0, 150, 1, 0)
 	button.BackgroundColor3 = THEME.Card
 	button.BackgroundTransparency = 1
 	button.BorderSizePixel = 0
@@ -368,6 +445,17 @@ local function createTab(name, order)
 	button.AutoButtonColor = false
 	button.LayoutOrder = order
 	button.Parent = tabBar
+    bindPressFeedback(button)
+
+    local indicator = Instance.new("Frame")
+    indicator.Name = "ActiveIndicator"
+    indicator.AnchorPoint = Vector2.new(0.5, 1)
+    indicator.Position = UDim2.new(0.5, 0, 1, -2)
+    indicator.Size = UDim2.new(0, 0, 0, 2)
+    indicator.BackgroundColor3 = THEME.Accent
+    indicator.BorderSizePixel = 0
+    indicator.Parent = button
+    Instance.new("UICorner", indicator).CornerRadius = UDim.new(1, 0)
 
 	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 7)
 
@@ -408,7 +496,7 @@ createTab("Teleport", 3)
 local function registerPage(name, elements)
     pageReferences[name] = elements
     for _, element in ipairs(elements) do
-        element.Visible = not isMinimized and currentTab == name
+        presentPage(element, not isMinimized and currentTab == name)
     end
 end
 
@@ -424,16 +512,22 @@ switchTab = function(name)
     currentTab = name
     for tabName, button in pairs(tabs) do
         local selected = tabName == name
-        button.BackgroundTransparency = selected and 0 or 1
-        if selected then
-            button.BackgroundColor3 = THEME.CardSelected
+        TweenService:Create(button, TweenInfo.new(0.18), {
+            BackgroundTransparency = selected and 0 or 1,
+            BackgroundColor3 = selected and THEME.CardSelected or THEME.Card,
+            TextColor3 = selected and THEME.Accent or THEME.TextMuted,
+        }):Play()
+        local indicator = button:FindFirstChild("ActiveIndicator")
+        if indicator then
+            TweenService:Create(indicator, TweenInfo.new(0.22, Enum.EasingStyle.Quart), {
+                Size = UDim2.new(selected and 0.55 or 0, 0, 0, 2),
+            }):Play()
         end
-        button.TextColor3 = selected and THEME.Accent or THEME.TextMuted
     end
 
     for pageName, elements in pairs(pageReferences) do
         for _, element in ipairs(elements) do
-            element.Visible = not isMinimized and pageName == name
+            presentPage(element, not isMinimized and pageName == name)
         end
     end
 end
@@ -689,6 +783,7 @@ sidebar.BorderSizePixel = 0
 sidebar.Parent = frame
 
 Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 12)
+addSurfaceGradient(sidebar, 80)
 
 local sideStroke = Instance.new("UIStroke", sidebar)
 sideStroke.Color = THEME.Border
@@ -743,7 +838,7 @@ local search = Instance.new("TextBox")
 search.Size = UDim2.new(1, -20, 1, 0)
 search.Position = UDim2.new(0, 10, 0, 0)
 search.Text = ""
-search.PlaceholderText = "Search Fish . . ."
+search.PlaceholderText = "Search fish by name..."
 search.BackgroundTransparency = 1
 search.TextColor3 = THEME.Text
 search.PlaceholderColor3 = THEME.TextMuted
@@ -752,6 +847,7 @@ search.TextSize = 13
 search.ClearTextOnFocus = false
 search.TextXAlignment = Enum.TextXAlignment.Left
 search.Parent = searchFrame
+bindSearchFocus(search, searchStroke)
 
 local list = Instance.new("ScrollingFrame")
 list.Size = UDim2.new(1, 0, 1, -55)
@@ -764,7 +860,7 @@ list.CanvasSize = UDim2.new(0, 0, 0, 0)
 list.Parent = content
 
 local grid = Instance.new("UIGridLayout")
-grid.CellSize = UDim2.new(0, 125, 0, 125)
+grid.CellSize = UDim2.new(0, 125, 0, 140)
 grid.CellPadding = UDim2.new(0, 9, 0, 9)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = list
@@ -777,6 +873,7 @@ previewPanel.BorderSizePixel = 0
 previewPanel.Parent = frame
 
 Instance.new("UICorner", previewPanel).CornerRadius = UDim.new(0, 12)
+addSurfaceGradient(previewPanel, 80)
 
 local previewStroke = Instance.new("UIStroke", previewPanel)
 previewStroke.Color = THEME.Border
@@ -815,9 +912,9 @@ previewRarity.TextSize = 10
 previewRarity.Parent = previewPanel
 
 local viewport = Instance.new("ViewportFrame")
-viewport.Size = UDim2.new(1, -35, 0, 285)
+viewport.Size = UDim2.new(1, -35, 0, 244)
 viewport.Position = UDim2.new(0, 17, 0, 108)
-viewport.BackgroundColor3 = Color3.fromRGB(10, 12, 17)
+viewport.BackgroundColor3 = Color3.fromRGB(7, 20, 32)
 viewport.BorderSizePixel = 0
 viewport.Ambient = Color3.fromRGB(200, 200, 200)
 viewport.LightColor = Color3.fromRGB(255, 255, 255)
@@ -843,6 +940,7 @@ Instance.new("UICorner", catchButton).CornerRadius = UDim.new(0, 9)
 catchButtonStroke = Instance.new("UIStroke", catchButton)
 catchButtonStroke.Color = THEME.Border
 catchButtonStroke.Thickness = 1
+addSurfaceGradient(catchButton, 15)
 
 catchButton.BackgroundColor3 = THEME.Card
 catchButton.TextColor3 = THEME.TextMuted
@@ -862,6 +960,8 @@ local function createFishCard(data)
 	button.BorderSizePixel = 0
 	button.LayoutOrder = data.Order
 	button.Parent = list
+	addSurfaceGradient(button, 65)
+	bindPressFeedback(button)
 
 	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
 
@@ -885,12 +985,12 @@ local function createFishCard(data)
 	rarityLabel.Text = RARITY_DISPLAY[rarity] or string.upper(rarity)
 	rarityLabel.TextColor3 = rarityColor
 	rarityLabel.Font = FONT_BOLD
-	rarityLabel.TextSize = 7
+	rarityLabel.TextSize = 8
 	rarityLabel.TextXAlignment = Enum.TextXAlignment.Left
 	rarityLabel.Parent = button
 
 	local miniViewport = Instance.new("ViewportFrame")
-	miniViewport.Size = UDim2.new(1, -10, 0, 67)
+	miniViewport.Size = UDim2.new(1, -10, 0, 80)
 	miniViewport.Position = UDim2.new(0, 5, 0, 25)
 	miniViewport.BackgroundTransparency = 1
 	miniViewport.BorderSizePixel = 0
@@ -956,13 +1056,13 @@ local function createFishCard(data)
 	fishName.Text = name
 	fishName.TextColor3 = THEME.Text
 	fishName.Font = FONT_REGULAR
-	fishName.TextSize = 10
+	fishName.TextSize = 11
 	fishName.TextTruncate = Enum.TextTruncate.AtEnd
 	fishName.Parent = button
 
 	local rarityBar = Instance.new("Frame")
-	rarityBar.Size = UDim2.new(1, 0, 0, 3)
-	rarityBar.Position = UDim2.new(0, 0, 1, -3)
+	rarityBar.Size = UDim2.new(1, -20, 0, 2)
+	rarityBar.Position = UDim2.new(0, 10, 1, -5)
 	rarityBar.BackgroundColor3 = rarityColor
 	rarityBar.BorderSizePixel = 0
 	rarityBar.Parent = button
@@ -1109,10 +1209,11 @@ for index, category in ipairs(categories) do
 	categoryButton.Text = RARITY_DISPLAY[category] or string.upper(category)
 	categoryButton.TextColor3 = THEME.TextMuted
 	categoryButton.Font = FONT_BOLD
-	categoryButton.TextSize = 9
+	categoryButton.TextSize = 10
 	categoryButton.LayoutOrder = index
 	categoryButton.AutoButtonColor = false
 	categoryButton.Parent = categoryContainer
+	bindPressFeedback(categoryButton)
 
 	Instance.new("UICorner", categoryButton).CornerRadius = UDim.new(0, 8)
 
@@ -1614,6 +1715,7 @@ treasureSidebar.Visible = false
 treasureSidebar.Parent = frame
 
 Instance.new("UICorner", treasureSidebar).CornerRadius = UDim.new(0, 12)
+addSurfaceGradient(treasureSidebar, 80)
 
 local treasureSideStroke = Instance.new("UIStroke", treasureSidebar)
 treasureSideStroke.Color = THEME.Border
@@ -1671,7 +1773,7 @@ local treasureSearch = Instance.new("TextBox")
 treasureSearch.Size = UDim2.new(1, -20, 1, 0)
 treasureSearch.Position = UDim2.new(0, 10, 0, 0)
 treasureSearch.Text = ""
-treasureSearch.PlaceholderText = "Search Treasure . . ."
+treasureSearch.PlaceholderText = "Search treasure by name..."
 treasureSearch.BackgroundTransparency = 1
 treasureSearch.TextColor3 = THEME.Text
 treasureSearch.PlaceholderColor3 = THEME.TextMuted
@@ -1680,6 +1782,7 @@ treasureSearch.TextSize = 13
 treasureSearch.ClearTextOnFocus = false
 treasureSearch.TextXAlignment = Enum.TextXAlignment.Left
 treasureSearch.Parent = treasureSearchFrame
+bindSearchFocus(treasureSearch, treasureSearchStroke)
 
 local treasureListFrame = Instance.new("ScrollingFrame")
 treasureListFrame.Size = UDim2.new(1, 0, 1, -55)
@@ -1692,7 +1795,7 @@ treasureListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 treasureListFrame.Parent = treasureContent
 
 local treasureGrid = Instance.new("UIGridLayout")
-treasureGrid.CellSize = UDim2.new(0, 125, 0, 125)
+treasureGrid.CellSize = UDim2.new(0, 125, 0, 140)
 treasureGrid.CellPadding = UDim2.new(0, 9, 0, 9)
 treasureGrid.SortOrder = Enum.SortOrder.LayoutOrder
 treasureGrid.Parent = treasureListFrame
@@ -1706,6 +1809,7 @@ treasurePreviewPanel.Visible = false
 treasurePreviewPanel.Parent = frame
 
 Instance.new("UICorner", treasurePreviewPanel).CornerRadius = UDim.new(0, 12)
+addSurfaceGradient(treasurePreviewPanel, 80)
 
 local treasurePreviewStroke = Instance.new("UIStroke", treasurePreviewPanel)
 treasurePreviewStroke.Color = THEME.Border
@@ -1744,9 +1848,9 @@ treasurePreviewInfo.TextSize = 10
 treasurePreviewInfo.Parent = treasurePreviewPanel
 
 local treasureViewport = Instance.new("ViewportFrame")
-treasureViewport.Size = UDim2.new(1, -35, 0, 285)
+treasureViewport.Size = UDim2.new(1, -35, 0, 244)
 treasureViewport.Position = UDim2.new(0, 17, 0, 108)
-treasureViewport.BackgroundColor3 = Color3.fromRGB(10, 12, 17)
+treasureViewport.BackgroundColor3 = Color3.fromRGB(7, 20, 32)
 treasureViewport.BorderSizePixel = 0
 treasureViewport.Ambient = Color3.fromRGB(200, 200, 200)
 treasureViewport.LightColor = Color3.fromRGB(255, 255, 255)
@@ -1772,6 +1876,7 @@ Instance.new("UICorner", collectTreasureButton).CornerRadius = UDim.new(0, 9)
 collectTreasureButtonStroke = Instance.new("UIStroke", collectTreasureButton)
 collectTreasureButtonStroke.Color = THEME.Border
 collectTreasureButtonStroke.Thickness = 1
+addSurfaceGradient(collectTreasureButton, 15)
 
 collectTreasureButton.BackgroundColor3 = THEME.Card
 collectTreasureButton.TextColor3 = THEME.TextMuted
@@ -1792,6 +1897,8 @@ local function createTreasureCard(data)
 	button.LayoutOrder = data.Order
 	button:SetAttribute("Rarity", rarity)
 	button.Parent = treasureListFrame
+	addSurfaceGradient(button, 65)
+	bindPressFeedback(button)
 
 	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
 
@@ -1820,7 +1927,7 @@ local function createTreasureCard(data)
 	treasureLabel.Parent = button
 
 	local miniViewport = Instance.new("ViewportFrame")
-	miniViewport.Size = UDim2.new(1, -10, 0, 67)
+	miniViewport.Size = UDim2.new(1, -10, 0, 80)
 	miniViewport.Position = UDim2.new(0, 5, 0, 25)
 	miniViewport.BackgroundTransparency = 1
 	miniViewport.BorderSizePixel = 0
@@ -1888,7 +1995,7 @@ local function createTreasureCard(data)
 	treasureNameLabel.Text = name
 	treasureNameLabel.TextColor3 = THEME.Text
 	treasureNameLabel.Font = FONT_REGULAR
-	treasureNameLabel.TextSize = 10
+	treasureNameLabel.TextSize = 11
 	treasureNameLabel.TextTruncate = Enum.TextTruncate.AtEnd
 	treasureNameLabel.Parent = button
 
@@ -2041,10 +2148,11 @@ for index, category in ipairs(treasureCategories) do
 	categoryButton.Text = TREASURE_RARITY_DISPLAY[category] or string.upper(category)
 	categoryButton.TextColor3 = THEME.TextMuted
 	categoryButton.Font = FONT_BOLD
-	categoryButton.TextSize = 9
+	categoryButton.TextSize = 10
 	categoryButton.LayoutOrder = index
 	categoryButton.AutoButtonColor = false
 	categoryButton.Parent = treasureCategoryContainer
+	bindPressFeedback(categoryButton)
 
 	Instance.new("UICorner", categoryButton).CornerRadius = UDim.new(0, 8)
 
@@ -2459,6 +2567,7 @@ teleportPanel.BorderSizePixel = 0
 teleportPanel.Parent = teleportPage
 
 Instance.new("UICorner", teleportPanel).CornerRadius = UDim.new(0, 12)
+addSurfaceGradient(teleportPanel, 80)
 
 local teleportStroke = Instance.new("UIStroke", teleportPanel)
 teleportStroke.Color = THEME.Border
@@ -2531,6 +2640,8 @@ local function createTeleportButton(name, position, order)
 	button.TextWrapped = true
 	button.AutoButtonColor = false
 	button.Parent = teleportList
+	addSurfaceGradient(button, 65)
+	bindPressFeedback(button)
 
 	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 9)
 
