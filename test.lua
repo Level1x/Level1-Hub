@@ -53,7 +53,7 @@ local THEME = {
 
 	Accent = Color3.fromRGB(85, 225, 219),
 	AccentDark = Color3.fromRGB(29, 151, 167),
-	ActionText = Color3.fromRGB(5, 27, 38),
+	ActionText = Color3.fromRGB(2, 14, 22),
 	ActionTextMuted = Color3.fromRGB(176, 184, 188),
 
 	Text = Color3.fromRGB(235, 246, 251),
@@ -1018,6 +1018,7 @@ catchButton.BackgroundColor3 = THEME.Card
 catchButton.TextColor3 = THEME.ActionTextMuted
 catchButton.Font = FONT_BOLD
 catchButton.TextSize = 12
+catchButton.TextStrokeTransparency = 1
 catchButton.BorderSizePixel = 0
 catchButton.AutoButtonColor = false
 catchButton.Parent = previewPanel
@@ -1027,7 +1028,6 @@ Instance.new("UICorner", catchButton).CornerRadius = UDim.new(0, 9)
 catchButtonStroke = Instance.new("UIStroke", catchButton)
 catchButtonStroke.Color = THEME.Border
 catchButtonStroke.Thickness = 1
-addSurfaceGradient(catchButton, 15)
 
 catchButton.BackgroundColor3 = THEME.Card
 catchButton.TextColor3 = THEME.ActionTextMuted
@@ -1953,6 +1953,7 @@ collectTreasureButton.BackgroundColor3 = THEME.Card
 collectTreasureButton.TextColor3 = THEME.ActionTextMuted
 collectTreasureButton.Font = FONT_BOLD
 collectTreasureButton.TextSize = 12
+collectTreasureButton.TextStrokeTransparency = 1
 collectTreasureButton.BorderSizePixel = 0
 collectTreasureButton.AutoButtonColor = false
 collectTreasureButton.Parent = treasurePreviewPanel
@@ -1962,7 +1963,6 @@ Instance.new("UICorner", collectTreasureButton).CornerRadius = UDim.new(0, 9)
 collectTreasureButtonStroke = Instance.new("UIStroke", collectTreasureButton)
 collectTreasureButtonStroke.Color = THEME.Border
 collectTreasureButtonStroke.Thickness = 1
-addSurfaceGradient(collectTreasureButton, 15)
 
 collectTreasureButton.BackgroundColor3 = THEME.Card
 collectTreasureButton.TextColor3 = THEME.ActionTextMuted
