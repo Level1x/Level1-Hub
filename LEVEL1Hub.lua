@@ -2094,6 +2094,23 @@ collectTreasureButton.BackgroundColor3 = THEME.Card
 collectTreasureButton.TextColor3 = THEME.TextMuted
 collectTreasureButton.Active = true
 
+local teleportLocations = {
+	{"Mr. Detok [Market Place]", Vector3.new(27.79836, 239.60448, 832.53687)},
+	{"Mr. Wiwok [Gear Shop]", Vector3.new(-36.18216, 237.68404, 838.65741)},
+	{"Fisherman", Vector3.new(-9.16492, 237.69075, 791.66632)},
+
+	{"ใส่ชื่อสถานที่ใหม่", Vector3.new(0, 0, 0)},
+}
+
+local function teleportTo(position)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+
+	if root then
+		root.CFrame = CFrame.new(position)
+	end
+end
+
 local teleportPage = Instance.new("Frame")
 teleportPage.Name = "TeleportPage"
 teleportPage.Size = UDim2.new(0, 860, 1, -130)
@@ -2128,15 +2145,86 @@ teleportTitle.TextXAlignment = Enum.TextXAlignment.Left
 teleportTitle.Parent = teleportPanel
 
 local teleportInfo = Instance.new("TextLabel")
-teleportInfo.Size = UDim2.new(1, -30, 0, 40)
+teleportInfo.Size = UDim2.new(1, -30, 0, 25)
 teleportInfo.Position = UDim2.new(0, 15, 0, 48)
 teleportInfo.BackgroundTransparency = 1
-teleportInfo.Text = "Teleport functions will be added here."
+teleportInfo.Text = "Select a location"
 teleportInfo.TextColor3 = THEME.TextMuted
 teleportInfo.Font = FONT_REGULAR
 teleportInfo.TextSize = 11
 teleportInfo.TextXAlignment = Enum.TextXAlignment.Left
 teleportInfo.Parent = teleportPanel
+
+local teleportList = Instance.new("ScrollingFrame")
+teleportList.Size = UDim2.new(1, -30, 1, -95)
+teleportList.Position = UDim2.new(0, 15, 0, 82)
+teleportList.BackgroundTransparency = 1
+teleportList.BorderSizePixel = 0
+teleportList.ScrollBarThickness = 3
+teleportList.ScrollBarImageColor3 = THEME.Accent
+teleportList.CanvasSize = UDim2.new(0, 0, 0, 0)
+teleportList.Parent = teleportPanel
+
+local teleportGrid = Instance.new("UIGridLayout")
+teleportGrid.CellSize = UDim2.new(0, 260, 0, 55)
+teleportGrid.CellPadding = UDim2.new(0, 10, 0, 10)
+teleportGrid.SortOrder = Enum.SortOrder.LayoutOrder
+teleportGrid.Parent = teleportList
+
+local function createTeleportButton(name, position, order)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.LayoutOrder = order
+	button.BackgroundColor3 = THEME.Card
+	button.BorderSizePixel = 0
+	button.Text = name
+	button.TextColor3 = THEME.Text
+	button.Font = FONT_BOLD
+	button.TextSize = 11
+	button.TextWrapped = true
+	button.AutoButtonColor = false
+	button.Parent = teleportList
+
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 9)
+
+	local stroke = Instance.new("UIStroke", button)
+	stroke.Color = THEME.Border
+	stroke.Thickness = 1
+
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.CardHover,
+			TextColor3 = THEME.Accent
+		}):Play()
+	end)
+
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.Card,
+			TextColor3 = THEME.Text
+		}):Play()
+	end)
+
+	button.MouseButton1Click:Connect(function()
+		teleportTo(position)
+	end)
+end
+
+for index, location in ipairs(teleportLocations) do
+	createTeleportButton(location[1], location[2], index)
+end
+
+local function updateTeleportCanvas()
+	teleportList.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		teleportGrid.AbsoluteContentSize.Y + 10
+	)
+end
+
+teleportGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateTeleportCanvas)
+updateTeleportCanvas()
 
 local function switchTab(name)
 	if not tabs[name] then
