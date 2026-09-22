@@ -2972,26 +2972,20 @@ gamePassContent.Name = "GamePassContent"
 gamePassContent.Size = UDim2.new(1, -30, 1, -88)
 gamePassContent.Position = UDim2.new(0, 15, 0, 73)
 gamePassContent.BackgroundTransparency = 1
+gamePassContent.ClipsDescendants = true
 gamePassContent.Parent = gamePassPanel
 
 local gamePassProductGrid = Instance.new("Frame")
 gamePassProductGrid.Name = "ProductGrid"
-gamePassProductGrid.Size = UDim2.new(1, 0, 0, 245)
+gamePassProductGrid.Size = UDim2.new(1, 0, 0, 255)
 gamePassProductGrid.BackgroundTransparency = 1
+gamePassProductGrid.ClipsDescendants = true
 gamePassProductGrid.Parent = gamePassContent
-
-local gamePassZoneLayout = Instance.new("UIGridLayout")
-gamePassZoneLayout.CellSize = UDim2.new(0.5, -8, 1, 0)
-gamePassZoneLayout.CellPadding = UDim2.new(0, 16, 0, 0)
-gamePassZoneLayout.FillDirection = Enum.FillDirection.Horizontal
-gamePassZoneLayout.FillDirectionMaxCells = 2
-gamePassZoneLayout.SortOrder = Enum.SortOrder.LayoutOrder
-gamePassZoneLayout.Parent = gamePassProductGrid
 
 local purchaseLogPanel = Instance.new("Frame")
 purchaseLogPanel.Name = "PurchaseLogPanel"
-purchaseLogPanel.Size = UDim2.new(1, 0, 1, -257)
-purchaseLogPanel.Position = UDim2.fromOffset(0, 257)
+purchaseLogPanel.Size = UDim2.new(1, 0, 1, -267)
+purchaseLogPanel.Position = UDim2.fromOffset(0, 267)
 purchaseLogPanel.BackgroundColor3 = Color3.fromRGB(14, 31, 46)
 purchaseLogPanel.BorderSizePixel = 0
 purchaseLogPanel.Parent = gamePassContent
@@ -3107,16 +3101,16 @@ local function createGamePassButton(parent, item, accentColor, order)
 	buttonStroke.Thickness = 1
 
 	local accentLine = Instance.new("Frame")
-	accentLine.Size = UDim2.new(0, 4, 1, -24)
-	accentLine.Position = UDim2.fromOffset(12, 12)
+	accentLine.Size = UDim2.new(0, 4, 1, -18)
+	accentLine.Position = UDim2.fromOffset(12, 9)
 	accentLine.BackgroundColor3 = accentColor
 	accentLine.BorderSizePixel = 0
 	accentLine.Parent = button
 	Instance.new("UICorner", accentLine).CornerRadius = UDim.new(1, 0)
 
 	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, -62, 0, 32)
-	nameLabel.Position = UDim2.fromOffset(26, 3)
+	nameLabel.Size = UDim2.new(1, -104, 1, 0)
+	nameLabel.Position = UDim2.fromOffset(26, 0)
 	nameLabel.BackgroundTransparency = 1
 	nameLabel.Text = string.upper(item.Name)
 	nameLabel.TextColor3 = THEME.Text
@@ -3128,7 +3122,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 
 	local buyLabel = Instance.new("TextLabel")
 	buyLabel.AnchorPoint = Vector2.new(1, 0.5)
-	buyLabel.Size = UDim2.new(0, 54, 0, 28)
+	buyLabel.Size = UDim2.new(0, 62, 0, 28)
 	buyLabel.Position = UDim2.new(1, -12, 0.5, 0)
 	buyLabel.BackgroundColor3 = accentColor
 	buyLabel.BorderSizePixel = 0
@@ -3186,9 +3180,11 @@ local function createGamePassZone(zone, order)
 	local card = Instance.new("Frame")
 	card.Name = "PurchaseZone" .. tostring(order)
 	card.LayoutOrder = order
+	card.Size = UDim2.new(0.5, -8, 1, 0)
+	card.Position = order == 1 and UDim2.new(0, 0, 0, 0) or UDim2.new(0.5, 8, 0, 0)
 	card.BackgroundColor3 = Color3.fromRGB(14, 31, 46)
 	card.BorderSizePixel = 0
-	card.Parent = gamePassContent
+	card.Parent = gamePassProductGrid
 
 	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 12)
 
@@ -3228,6 +3224,7 @@ local function createGamePassZone(zone, order)
 	list.Size = UDim2.new(1, -32, 1, -65)
 	list.Position = UDim2.fromOffset(16, 55)
 	list.BackgroundTransparency = 1
+	list.ClipsDescendants = true
 	list.Parent = card
 
 	local listLayout = Instance.new("UIListLayout")
@@ -3237,7 +3234,7 @@ local function createGamePassZone(zone, order)
 
 	for itemOrder, item in ipairs(zone.Items) do
 		local passButton = createGamePassButton(list, item, zone.Color, itemOrder)
-		passButton.Size = UDim2.new(1, 0, 0, 38)
+		passButton.Size = UDim2.new(1, 0, 0, 41)
 	end
 
 	return card
