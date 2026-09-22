@@ -1502,7 +1502,7 @@ UIS.InputChanged:Connect(function(input)
 
 		previewLastPosition = currentPosition
 		previewYaw = (previewYaw + delta.X * 0.6) % 360
-		previewPitch = (previewPitch - delta.Y * 0.6) % 360
+		previewPitch = (previewPitch + delta.Y * 0.6) % 360
 
 		setPreviewRotation()
 	end
