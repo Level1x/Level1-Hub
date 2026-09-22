@@ -1528,26 +1528,6 @@ catchButton.Active = true
 
 
 
-local treasureFolder = ReplicatedStorage
-	:WaitForChild("A__Assets")
-	:WaitForChild("Treasure")
-
-local treasureDataModule = ReplicatedStorage
-	:WaitForChild("Shared")
-	:WaitForChild("Data")
-	:WaitForChild("Template")
-	:WaitForChild("Treasures")
-
-local treasureAddToInventoryRF = ReplicatedStorage
-	:WaitForChild("Packages")
-	:WaitForChild("_Index")
-	:WaitForChild("sleitnick_knit@1.7.0")
-	:WaitForChild("knit")
-	:WaitForChild("Services")
-	:WaitForChild("TreasureService")
-	:WaitForChild("RF")
-	:WaitForChild("AddToInventory")
-
 local TreasureIndex = {}
 
 local function loadTreasureIndex()
@@ -1781,7 +1761,6 @@ local treasureViewportCamera
 local treasurePreviewWorld
 local treasurePreviewClone
 local treasurePreviewBasePivot
-
 local treasurePreviewRotation = 0
 local treasurePreviewDragging = false
 local treasurePreviewLastX = 0
@@ -1896,11 +1875,9 @@ local function updateTreasurePreview(treasureName, rarity)
 	local rarityColor = getRarityColor(treasureRarity)
 
 	treasurePreviewTitle.Text = string.upper(treasureName)
-
 	treasurePreviewInfo.Text =
 		TREASURE_RARITY_DISPLAY[treasureRarity]
 		or string.upper(treasureRarity)
-
 	treasurePreviewInfo.TextColor3 = rarityColor
 end
 
@@ -1990,10 +1967,7 @@ local function createTreasureCard(data)
 	treasureLabel.Size = UDim2.new(1, -25, 0, 16)
 	treasureLabel.Position = UDim2.new(0, 21, 0, 5)
 	treasureLabel.BackgroundTransparency = 1
-	treasureLabel.Text =
-		TREASURE_RARITY_DISPLAY[rarity]
-		or string.upper(rarity)
-
+	treasureLabel.Text = TREASURE_RARITY_DISPLAY[rarity] or string.upper(rarity)
 	treasureLabel.TextColor3 = rarityColor
 	treasureLabel.Font = FONT_BOLD
 	treasureLabel.TextSize = 7
@@ -2030,12 +2004,9 @@ local function createTreasureCard(data)
 			local miniRotation = CFrame.Angles(0, math.rad(180), 0)
 
 			if miniClone:IsA("Model") then
-				miniClone:PivotTo(
-					miniRotation * miniClone:GetPivot()
-				)
+				miniClone:PivotTo(miniRotation * miniClone:GetPivot())
 			elseif miniClone:IsA("BasePart") then
-				miniClone.CFrame =
-					miniRotation * miniClone.CFrame
+				miniClone.CFrame = miniRotation * miniClone.CFrame
 			end
 
 			local miniCamera = Instance.new("Camera")
@@ -2110,15 +2081,11 @@ local function createTreasureCard(data)
 	end)
 
 	button.MouseButton1Click:Connect(function()
-		if selectedTreasureButton
-			and selectedTreasureButton ~= button then
-
-			selectedTreasureButton.BackgroundColor3 =
-				THEME.Card
+		if selectedTreasureButton and selectedTreasureButton ~= button then
+			selectedTreasureButton.BackgroundColor3 = THEME.Card
 
 			if selectedTreasureStroke then
-				selectedTreasureStroke.Color =
-					THEME.Border
+				selectedTreasureStroke.Color = THEME.Border
 			end
 		end
 
@@ -2130,14 +2097,9 @@ local function createTreasureCard(data)
 		button.BackgroundColor3 = THEME.CardSelected
 		stroke.Color = rarityColor
 
-		collectTreasureButton.BackgroundColor3 =
-			THEME.Accent
-
-		collectTreasureButton.TextColor3 =
-			Color3.fromRGB(5, 15, 20)
-
-		collectTreasureButtonStroke.Color =
-			THEME.Accent
+		collectTreasureButton.BackgroundColor3 = THEME.Accent
+		collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+		collectTreasureButtonStroke.Color = THEME.Accent
 
 		updateTreasurePreview(name, rarity)
 	end)
@@ -2162,9 +2124,7 @@ local function updateTreasureCanvas()
 	)
 end
 
-treasureGrid:GetPropertyChangedSignal(
-	"AbsoluteContentSize"
-):Connect(updateTreasureCanvas)
+treasureGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateTreasureCanvas)
 
 task.defer(updateTreasureCanvas)
 
@@ -2180,15 +2140,12 @@ local currentTreasureCategory = nil
 local treasureCategoryButtons = {}
 
 local function filterTreasure()
-	local searchText =
-		string.lower(treasureSearch.Text or "")
+	local searchText = string.lower(treasureSearch.Text or "")
 
 	if currentTreasureCategory == nil then
-		treasureGrid.SortOrder =
-			Enum.SortOrder.LayoutOrder
+		treasureGrid.SortOrder = Enum.SortOrder.LayoutOrder
 	else
-		treasureGrid.SortOrder =
-			Enum.SortOrder.Name
+		treasureGrid.SortOrder = Enum.SortOrder.Name
 	end
 
 	for name, item in pairs(treasureButtons) do
@@ -2213,364 +2170,212 @@ local function filterTreasure()
 end
 
 local function updateTreasureCategoryVisuals()
-	for category, button in pairs(
-		treasureCategoryButtons
-	) do
-		local isSelected =
-			category == currentTreasureCategory
+	for category, button in pairs(treasureCategoryButtons) do
+		local isSelected = category == currentTreasureCategory
 
 		if isSelected then
 			button.BackgroundTransparency = 0
-			button.BackgroundColor3 =
-				THEME.CardSelected
-
-			button.TextColor3 =
-				getRarityColor(category)
+			button.BackgroundColor3 = THEME.CardSelected
+			button.TextColor3 = getRarityColor(category)
 		else
 			button.BackgroundTransparency = 1
 			button.BackgroundColor3 = THEME.Card
 			button.TextColor3 = THEME.TextMuted
 		end
 
-		local accent =
-			button:FindFirstChild("SelectedAccent")
+		local accent = button:FindFirstChild("SelectedAccent")
 
 		if accent then
 			accent.Visible = true
-			accent.BackgroundColor3 =
-				getRarityColor(category)
+			accent.BackgroundColor3 = getRarityColor(category)
 		end
 	end
 end
 
-for index, category in ipairs(
-	treasureCategories
-) do
-	local categoryButton = Instance.new(
-		"TextButton"
-	)
-
+for index, category in ipairs(treasureCategories) do
+	local categoryButton = Instance.new("TextButton")
 	categoryButton.Name = category
-	categoryButton.Size =
-		UDim2.new(1, 0, 0, 36)
-
-	categoryButton.BackgroundColor3 =
-		THEME.Card
-
+	categoryButton.Size = UDim2.new(1, 0, 0, 36)
+	categoryButton.BackgroundColor3 = THEME.Card
 	categoryButton.BackgroundTransparency = 1
 	categoryButton.BorderSizePixel = 0
-
-	categoryButton.Text =
-		TREASURE_RARITY_DISPLAY[category]
-		or string.upper(category)
-
-	categoryButton.TextColor3 =
-		THEME.TextMuted
-
+	categoryButton.Text = TREASURE_RARITY_DISPLAY[category] or string.upper(category)
+	categoryButton.TextColor3 = THEME.TextMuted
 	categoryButton.Font = FONT_BOLD
 	categoryButton.TextSize = 9
 	categoryButton.LayoutOrder = index
 	categoryButton.AutoButtonColor = false
-	categoryButton.Parent =
-		treasureCategoryContainer
+	categoryButton.Parent = treasureCategoryContainer
 
-	Instance.new("UICorner", categoryButton)
-		.CornerRadius = UDim.new(0, 8)
+	Instance.new("UICorner", categoryButton).CornerRadius = UDim.new(0, 8)
 
-	treasureCategoryButtons[category] =
-		categoryButton
+	treasureCategoryButtons[category] = categoryButton
 
 	local accent = Instance.new("Frame")
 	accent.Name = "SelectedAccent"
-	accent.Size =
-		UDim2.new(0, 3, 1, -10)
-
-	accent.Position =
-		UDim2.new(0, 5, 0, 5)
-
-	accent.BackgroundColor3 =
-		getRarityColor(category)
-
+	accent.Size = UDim2.new(0, 3, 1, -10)
+	accent.Position = UDim2.new(0, 5, 0, 5)
+	accent.BackgroundColor3 = getRarityColor(category)
 	accent.BorderSizePixel = 0
 	accent.Visible = true
 	accent.Parent = categoryButton
 
-	Instance.new("UICorner", accent)
-		.CornerRadius = UDim.new(0, 2)
+	Instance.new("UICorner", accent).CornerRadius = UDim.new(0, 2)
 
 	categoryButton.MouseEnter:Connect(function()
 		if currentTreasureCategory ~= category then
-			TweenService:Create(
-				categoryButton,
-				TweenInfo.new(0.12),
-				{
-					BackgroundTransparency = 0,
-					BackgroundColor3 =
-						THEME.CardHover
-				}
-			):Play()
+			TweenService:Create(categoryButton, TweenInfo.new(0.12), {
+				BackgroundTransparency = 0,
+				BackgroundColor3 = THEME.CardHover
+			}):Play()
 		end
 	end)
 
 	categoryButton.MouseLeave:Connect(function()
 		if currentTreasureCategory ~= category then
-			TweenService:Create(
-				categoryButton,
-				TweenInfo.new(0.12),
-				{
-					BackgroundTransparency = 1
-				}
-			):Play()
+			TweenService:Create(categoryButton, TweenInfo.new(0.12), {
+				BackgroundTransparency = 1
+			}):Play()
 		end
 	end)
 
-	categoryButton.MouseButton1Click:Connect(
-		function()
-			if currentTreasureCategory ==
-				category then
-
-				currentTreasureCategory = nil
-			else
-				currentTreasureCategory =
-					category
-			end
-
-			updateTreasureCategoryVisuals()
-			filterTreasure()
+	categoryButton.MouseButton1Click:Connect(function()
+		if currentTreasureCategory == category then
+			currentTreasureCategory = nil
+		else
+			currentTreasureCategory = category
 		end
-	)
+
+		updateTreasureCategoryVisuals()
+		filterTreasure()
+	end)
 end
 
 updateTreasureCategoryVisuals()
 
-treasureSearch:GetPropertyChangedSignal(
-	"Text"
-):Connect(function()
+treasureSearch:GetPropertyChangedSignal("Text"):Connect(function()
 	filterTreasure()
 end)
 
-collectTreasureButton =
-	Instance.new("TextButton")
-
-collectTreasureButton.Size =
-	UDim2.new(1, -35, 0, 45)
-
-collectTreasureButton.Position =
-	UDim2.new(0, 17, 1, -60)
-
-collectTreasureButton.Text =
-	"COLLECT TREASURE"
-
-collectTreasureButton.BackgroundColor3 =
-	THEME.Card
-
-collectTreasureButton.TextColor3 =
-	THEME.TextMuted
-
+collectTreasureButton = Instance.new("TextButton")
+collectTreasureButton.Size = UDim2.new(1, -35, 0, 45)
+collectTreasureButton.Position = UDim2.new(0, 17, 1, -60)
+collectTreasureButton.Text = "COLLECT TREASURE"
+collectTreasureButton.BackgroundColor3 = THEME.Card
+collectTreasureButton.TextColor3 = THEME.TextMuted
 collectTreasureButton.Font = FONT_BOLD
 collectTreasureButton.TextSize = 12
 collectTreasureButton.BorderSizePixel = 0
 collectTreasureButton.AutoButtonColor = false
-collectTreasureButton.Parent =
-	treasurePreviewPanel
+collectTreasureButton.Parent = treasurePreviewPanel
 
-Instance.new("UICorner", collectTreasureButton)
-	.CornerRadius = UDim.new(0, 9)
+Instance.new("UICorner", collectTreasureButton).CornerRadius = UDim.new(0, 9)
 
-collectTreasureButtonStroke =
-	Instance.new("UIStroke", collectTreasureButton)
-
-collectTreasureButtonStroke.Color =
-	THEME.Border
-
+collectTreasureButtonStroke = Instance.new("UIStroke", collectTreasureButton)
+collectTreasureButtonStroke.Color = THEME.Border
 collectTreasureButtonStroke.Thickness = 1
 
-collectTreasureButton.MouseEnter:Connect(
-	function()
-		if selectedTreasure then
-			TweenService:Create(
-				collectTreasureButton,
-				TweenInfo.new(0.15),
-				{
-					BackgroundColor3 =
-						THEME.Accent
-				}
-			):Play()
+collectTreasureButton.MouseEnter:Connect(function()
+	if selectedTreasure then
+		TweenService:Create(collectTreasureButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = THEME.Accent
+		}):Play()
 
-			TweenService:Create(
-				collectTreasureButtonStroke,
-				TweenInfo.new(0.15),
-				{
-					Color = THEME.Accent
-				}
-			):Play()
+		TweenService:Create(collectTreasureButtonStroke, TweenInfo.new(0.15), {
+			Color = THEME.Accent
+		}):Play()
 
-			collectTreasureButton.TextColor3 =
-				Color3.fromRGB(5, 15, 20)
-		end
+		collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
 	end
-)
+end)
 
-collectTreasureButton.MouseLeave:Connect(
-	function()
-		if selectedTreasure then
-			TweenService:Create(
-				collectTreasureButton,
-				TweenInfo.new(0.15),
-				{
-					BackgroundColor3 =
-						THEME.AccentDark
-				}
-			):Play()
+collectTreasureButton.MouseLeave:Connect(function()
+	if selectedTreasure then
+		TweenService:Create(collectTreasureButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = THEME.AccentDark
+		}):Play()
 
-			collectTreasureButton.TextColor3 =
-				Color3.new(1, 1, 1)
-		else
-			TweenService:Create(
-				collectTreasureButton,
-				TweenInfo.new(0.15),
-				{
-					BackgroundColor3 =
-						THEME.Card
-				}
-			):Play()
+		collectTreasureButton.TextColor3 = Color3.new(1, 1, 1)
+	else
+		TweenService:Create(collectTreasureButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = THEME.Card
+		}):Play()
 
-			collectTreasureButton.TextColor3 =
-				THEME.TextMuted
-		end
+		collectTreasureButton.TextColor3 = THEME.TextMuted
 	end
-)
+end)
 
-collectTreasureButton.MouseButton1Down:Connect(
-	function()
-		if selectedTreasure then
-			collectTreasureButton:TweenSize(
-				UDim2.new(1, -39, 0, 41),
-				Enum.EasingDirection.Out,
-				Enum.EasingStyle.Quad,
-				0.08,
-				true
-			)
-		end
-	end
-)
-
-collectTreasureButton.MouseButton1Up:Connect(
-	function()
+collectTreasureButton.MouseButton1Down:Connect(function()
+	if selectedTreasure then
 		collectTreasureButton:TweenSize(
-			UDim2.new(1, -35, 0, 45),
+			UDim2.new(1, -39, 0, 41),
 			Enum.EasingDirection.Out,
 			Enum.EasingStyle.Quad,
 			0.08,
 			true
 		)
 	end
-)
+end)
 
-collectTreasureButton.MouseButton1Click:Connect(
-	function()
-		if not selectedTreasure then
-			warn("Pilih treasure dulu!")
-			return
-		end
+collectTreasureButton.MouseButton1Up:Connect(function()
+	collectTreasureButton:TweenSize(
+		UDim2.new(1, -35, 0, 45),
+		Enum.EasingDirection.Out,
+		Enum.EasingStyle.Quad,
+		0.08,
+		true
+	)
+end)
 
-		local treasureName =
-			selectedTreasure
-
-		collectTreasureButton.Text =
-			"COLLECTING..."
-
-		collectTreasureButton.Active = false
-
-		local success, result = pcall(
-			function()
-				return treasureAddToInventoryRF:
-					InvokeServer(
-						treasureName,
-						"Default"
-					)
-			end
-		)
-
-		if success then
-			collectTreasureButton.Text =
-				"✓ COLLECTED!"
-
-			collectTreasureButton.BackgroundColor3 =
-				Color3.fromRGB(
-					50,
-					190,
-					110
-				)
-
-			collectTreasureButton.TextColor3 =
-				Color3.new(1, 1, 1)
-
-			task.delay(0.8, function()
-				if collectTreasureButton.Parent then
-					collectTreasureButton.Text =
-						"COLLECT TREASURE"
-
-					collectTreasureButton.BackgroundColor3 =
-						THEME.Accent
-
-					collectTreasureButton.TextColor3 =
-						Color3.fromRGB(
-							5,
-							15,
-							20
-						)
-
-					collectTreasureButton.Active =
-						true
-				end
-			end)
-		else
-			warn(
-				"[Level1 Hub] Treasure AddToInventory failed:",
-				result
-			)
-
-			collectTreasureButton.Text =
-				"FAILED"
-
-			collectTreasureButton.BackgroundColor3 =
-				Color3.fromRGB(
-					210,
-					65,
-					75
-				)
-
-			collectTreasureButton.TextColor3 =
-				Color3.new(1, 1, 1)
-
-			task.delay(1, function()
-				if collectTreasureButton.Parent then
-					collectTreasureButton.Text =
-						"COLLECT TREASURE"
-
-					collectTreasureButton.BackgroundColor3 =
-						THEME.Accent
-
-					collectTreasureButton.TextColor3 =
-						Color3.fromRGB(
-							5,
-							15,
-							20
-						)
-
-					collectTreasureButton.Active =
-						true
-				end
-			end)
-		end
+collectTreasureButton.MouseButton1Click:Connect(function()
+	if not selectedTreasure then
+		warn("Pilih treasure dulu!")
+		return
 	end
-)
 
-collectTreasureButton.BackgroundColor3 =
-	THEME.Card
+	local treasureName = selectedTreasure
 
-collectTreasureButton.TextColor3 =
-	THEME.TextMuted
+	collectTreasureButton.Text = "COLLECTING..."
+	collectTreasureButton.Active = false
 
+	local success, result = pcall(function()
+		return treasureAddToInventoryRF:InvokeServer(
+			treasureName,
+			"Default"
+		)
+	end)
+
+	if success then
+		collectTreasureButton.Text = "✓ COLLECTED!"
+		collectTreasureButton.BackgroundColor3 = Color3.fromRGB(50, 190, 110)
+		collectTreasureButton.TextColor3 = Color3.new(1, 1, 1)
+
+		task.delay(0.8, function()
+			if collectTreasureButton.Parent then
+				collectTreasureButton.Text = "COLLECT TREASURE"
+				collectTreasureButton.BackgroundColor3 = THEME.Accent
+				collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				collectTreasureButton.Active = true
+			end
+		end)
+	else
+		warn("[Level1 Hub] Treasure AddToInventory failed:", result)
+
+		collectTreasureButton.Text = "FAILED"
+		collectTreasureButton.BackgroundColor3 = Color3.fromRGB(210, 65, 75)
+		collectTreasureButton.TextColor3 = Color3.new(1, 1, 1)
+
+		task.delay(1, function()
+			if collectTreasureButton.Parent then
+				collectTreasureButton.Text = "COLLECT TREASURE"
+				collectTreasureButton.BackgroundColor3 = THEME.Accent
+				collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				collectTreasureButton.Active = true
+			end
+		end)
+	end
+end)
+
+collectTreasureButton.BackgroundColor3 = THEME.Card
+collectTreasureButton.TextColor3 = THEME.TextMuted
 collectTreasureButton.Active = true
