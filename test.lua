@@ -1362,8 +1362,9 @@ local function setPreviewRotation()
 	end
 
 	-- Apply both axes around the visible model center, which is placed at origin.
+	-- Screen Y increases downward, so invert pitch when applying the rotation.
 	local rotation = CFrame.Angles(
-		math.rad(previewPitch),
+		math.rad(-previewPitch),
 		math.rad(previewYaw),
 		0
 	)
