@@ -2834,66 +2834,17 @@ registerPage("Teleport", {teleportPage})
 -- PART 5 : GAME PASS
 -- ============================================================================
 
--- PART 5 : GAME PASS
+local gamePassItems = {
+	{Name = "+1000 Money", Id = 3304032773, Signal = "Product"},
+	{Name = "+10K Money", Id = 3304032980, Signal = "Product"},
+	{Name = "+100K Money", Id = 3304033107, Signal = "Product"},
+	{Name = "+1M Money", Id = 3304033285, Signal = "Product"},
 
-local autoSpeed = 100
-local activeAutoButtons = {}
-local activeSpamButtons = {}
-local gamePassEventCount = 0
-local gamePassEntries = {}
-local gamePassSuppressCounter = 0
-
-local function fireFakeSignal(signalType, id)
-	gamePassSuppressCounter = gamePassSuppressCounter + 1
-
-	pcall(function()
-		if signalType == "Product" then
-			MarketplaceService:SignalPromptProductPurchaseFinished(player.UserId, id, true)
-		elseif signalType == "Gamepass" then
-			MarketplaceService:SignalPromptGamePassPurchaseFinished(player, id, true)
-		elseif signalType == "Bulk" then
-			MarketplaceService:SignalPromptBulkPurchaseFinished(player.UserId, id, true)
-		elseif signalType == "Purchase" then
-			MarketplaceService:SignalPromptPurchaseFinished(player.UserId, id, true)
-		end
-	end)
-
-	gamePassSuppressCounter = gamePassSuppressCounter - 1
-end
-
-local function stopAllAutoAndSpam()
-	for btn, data in pairs(activeAutoButtons) do
-		data.active = false
-
-		if data.loop then
-			task.cancel(data.loop)
-		end
-
-		if btn and btn.Parent then
-			btn.Text = "Auto"
-			btn.TextColor3 = Color3.fromRGB(170, 165, 220)
-			btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-		end
-	end
-
-	table.clear(activeAutoButtons)
-
-	for btn, data in pairs(activeSpamButtons) do
-		data.active = false
-
-		if data.loop then
-			task.cancel(data.loop)
-		end
-
-		if btn and btn.Parent then
-			btn.Text = "Run"
-			btn.TextColor3 = Color3.fromRGB(170, 165, 220)
-			btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-		end
-	end
-
-	table.clear(activeSpamButtons)
-end
+	{Name = "+100 Gems", Id = 3304033536, Signal = "Product"},
+	{Name = "+500 Gems", Id = 3304033742, Signal = "Product"},
+	{Name = "+1000 Gems", Id = 3304033861, Signal = "Product"},
+	{Name = "+10K Gems", Id = 3304033993, Signal = "Product"},
+}
 
 local gamePassPage = Instance.new("Frame")
 gamePassPage.Name = "GamePassPage"
@@ -2933,517 +2884,127 @@ local gamePassInfo = Instance.new("TextLabel")
 gamePassInfo.Size = UDim2.new(1, -30, 0, 24)
 gamePassInfo.Position = UDim2.fromOffset(15, 43)
 gamePassInfo.BackgroundTransparency = 1
-gamePassInfo.Text = "Marketplace Event Monitor"
+gamePassInfo.Text = "Money & Gems"
 gamePassInfo.TextColor3 = THEME.TextMuted
 gamePassInfo.Font = FONT_REGULAR
 gamePassInfo.TextSize = 11
 gamePassInfo.TextXAlignment = Enum.TextXAlignment.Left
 gamePassInfo.Parent = gamePassPanel
 
-local gamePassStatus = Instance.new("TextLabel")
-gamePassStatus.AnchorPoint = Vector2.new(1, 0)
-gamePassStatus.Size = UDim2.new(0, 300, 0, 24)
-gamePassStatus.Position = UDim2.new(1, -15, 0, 43)
-gamePassStatus.BackgroundTransparency = 1
-gamePassStatus.Text = ""
-gamePassStatus.TextColor3 = THEME.TextMuted
-gamePassStatus.Font = FONT_BOLD
-gamePassStatus.TextSize = 10
-gamePassStatus.TextXAlignment = Enum.TextXAlignment.Right
-gamePassStatus.Parent = gamePassPanel
+local gamePassList = Instance.new("ScrollingFrame")
+gamePassList.Name = "GamePassList"
+gamePassList.Size = UDim2.new(1, -30, 1, -88)
+gamePassList.Position = UDim2.fromOffset(15, 73)
+gamePassList.BackgroundTransparency = 1
+gamePassList.BorderSizePixel = 0
+gamePassList.CanvasSize = UDim2.new(0, 0, 0, 0)
+gamePassList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+gamePassList.ScrollBarThickness = 2
+gamePassList.ScrollBarImageColor3 = Color3.fromRGB(88, 123, 140)
+gamePassList.Parent = gamePassPanel
 
-local function setGamePassStatus(text, color)
-	gamePassStatus.Text = text
-	gamePassStatus.TextColor3 = color or THEME.TextMuted
+local gamePassLayout = Instance.new("UIListLayout")
+gamePassLayout.Padding = UDim.new(0, 8)
+gamePassLayout.SortOrder = Enum.SortOrder.LayoutOrder
+gamePassLayout.Parent = gamePassList
 
-	task.delay(1.8, function()
-		if gamePassStatus.Parent and gamePassStatus.Text == text then
-			gamePassStatus.Text = ""
-		end
+local function fireGamePassSignal(id)
+	pcall(function()
+		MarketplaceService:SignalPromptProductPurchaseFinished(
+			player.UserId,
+			id,
+			true
+		)
 	end)
 end
 
-local gamePassToolbar = Instance.new("Frame")
-gamePassToolbar.Size = UDim2.new(1, -30, 0, 38)
-gamePassToolbar.Position = UDim2.fromOffset(15, 73)
-gamePassToolbar.BackgroundTransparency = 1
-gamePassToolbar.Parent = gamePassPanel
+local function createGamePassButton(item, order)
+	local button = Instance.new("TextButton")
+	button.Name = "GamePass_" .. tostring(item.Id)
+	button.Size = UDim2.new(1, 0, 0, 48)
+	button.LayoutOrder = order
+	button.BackgroundColor3 = THEME.Card
+	button.BorderSizePixel = 0
+	button.Text = ""
+	button.AutoButtonColor = false
+	button.Parent = gamePassList
 
-local gamePassCountLabel = Instance.new("TextLabel")
-gamePassCountLabel.Size = UDim2.new(1, -190, 1, 0)
-gamePassCountLabel.BackgroundTransparency = 1
-gamePassCountLabel.Text = "0 events captured"
-gamePassCountLabel.TextColor3 = THEME.TextMuted
-gamePassCountLabel.Font = FONT_BOLD
-gamePassCountLabel.TextSize = 10
-gamePassCountLabel.TextXAlignment = Enum.TextXAlignment.Left
-gamePassCountLabel.Parent = gamePassToolbar
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
 
-local stopAllBtn = Instance.new("TextButton")
-stopAllBtn.AnchorPoint = Vector2.new(1, 0)
-stopAllBtn.Size = UDim2.new(0, 82, 0, 30)
-stopAllBtn.Position = UDim2.new(1, -88, 0, 4)
-stopAllBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-stopAllBtn.BorderSizePixel = 0
-stopAllBtn.Text = "STOP ALL"
-stopAllBtn.TextColor3 = Color3.fromRGB(255, 120, 120)
-stopAllBtn.TextSize = 10
-stopAllBtn.Font = FONT_BOLD
-stopAllBtn.AutoButtonColor = false
-stopAllBtn.Parent = gamePassToolbar
+	local stroke = Instance.new("UIStroke", button)
+	stroke.Color = THEME.Border
+	stroke.Thickness = 1
 
-Instance.new("UICorner", stopAllBtn).CornerRadius = UDim.new(0, 7)
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -110, 1, 0)
+	nameLabel.Position = UDim2.fromOffset(18, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = string.upper(item.Name)
+	nameLabel.TextColor3 = THEME.Text
+	nameLabel.Font = FONT_BOLD
+	nameLabel.TextSize = 13
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	nameLabel.Parent = button
 
-local stopAllStroke = Instance.new("UIStroke", stopAllBtn)
-stopAllStroke.Color = Color3.fromRGB(95, 45, 45)
-stopAllStroke.Thickness = 1
+	local buyButton = Instance.new("TextButton")
+	buyButton.AnchorPoint = Vector2.new(1, 0.5)
+	buyButton.Size = UDim2.fromOffset(70, 30)
+	buyButton.Position = UDim2.new(1, -10, 0.5, 0)
+	buyButton.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+	buyButton.BorderSizePixel = 0
+	buyButton.Text = "BUY"
+	buyButton.TextColor3 = THEME.ActionText
+	buyButton.Font = FONT_BOLD
+	buyButton.TextSize = 10
+	buyButton.AutoButtonColor = false
+	buyButton.Parent = button
 
-local clearBtn = Instance.new("TextButton")
-clearBtn.AnchorPoint = Vector2.new(1, 0)
-clearBtn.Size = UDim2.new(0, 78, 0, 30)
-clearBtn.Position = UDim2.new(1, 0, 0, 4)
-clearBtn.BackgroundColor3 = THEME.Card
-clearBtn.BorderSizePixel = 0
-clearBtn.Text = "CLEAR"
-clearBtn.TextColor3 = THEME.TextMuted
-clearBtn.TextSize = 10
-clearBtn.Font = FONT_BOLD
-clearBtn.AutoButtonColor = false
-clearBtn.Parent = gamePassToolbar
+	Instance.new("UICorner", buyButton).CornerRadius = UDim.new(0, 8)
 
-Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0, 7)
+	buyButton.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.CardHover
+		}):Play()
 
-local clearStroke = Instance.new("UIStroke", clearBtn)
-clearStroke.Color = THEME.Border
-clearStroke.Thickness = 1
-
-local gamePassLog = Instance.new("ScrollingFrame")
-gamePassLog.Name = "GamePassEventLog"
-gamePassLog.Size = UDim2.new(1, -30, 1, -126)
-gamePassLog.Position = UDim2.fromOffset(15, 116)
-gamePassLog.BackgroundColor3 = Color3.fromRGB(14, 31, 46)
-gamePassLog.BorderSizePixel = 0
-gamePassLog.CanvasSize = UDim2.new(0, 0, 0, 0)
-gamePassLog.AutomaticCanvasSize = Enum.AutomaticSize.Y
-gamePassLog.ScrollBarThickness = 2
-gamePassLog.ScrollBarImageColor3 = Color3.fromRGB(88, 123, 140)
-gamePassLog.Parent = gamePassPanel
-
-Instance.new("UICorner", gamePassLog).CornerRadius = UDim.new(0, 12)
-
-local gamePassLogStroke = Instance.new("UIStroke", gamePassLog)
-gamePassLogStroke.Color = THEME.Border
-gamePassLogStroke.Thickness = 1
-
-local gamePassLogLayout = Instance.new("UIListLayout")
-gamePassLogLayout.Padding = UDim.new(0, 6)
-gamePassLogLayout.SortOrder = Enum.SortOrder.LayoutOrder
-gamePassLogLayout.Parent = gamePassLog
-
-local gamePassEmpty = Instance.new("TextLabel")
-gamePassEmpty.Name = "EmptyState"
-gamePassEmpty.Size = UDim2.new(1, -30, 0, 160)
-gamePassEmpty.Position = UDim2.fromOffset(15, 60)
-gamePassEmpty.BackgroundTransparency = 1
-gamePassEmpty.Text = "Waiting for events…\nAll marketplace events will appear here."
-gamePassEmpty.TextColor3 = THEME.TextMuted
-gamePassEmpty.TextSize = 13
-gamePassEmpty.Font = FONT_REGULAR
-gamePassEmpty.TextWrapped = true
-gamePassEmpty.Parent = gamePassLog
-
-local function updateGamePassEmpty()
-	gamePassEmpty.Visible = #gamePassEntries == 0
-end
-
-local function resetAutoButton(btn)
-	if btn and btn.Parent then
-		btn.Text = "Auto"
-		btn.TextColor3 = Color3.fromRGB(170, 165, 220)
-		btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-	end
-end
-
-local function resetRunButton(btn)
-	if btn and btn.Parent then
-		btn.Text = "Run"
-		btn.TextColor3 = Color3.fromRGB(170, 165, 220)
-		btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-	end
-end
-
-local function addGamePassEvent(label, id, signalType)
-	gamePassEventCount += 1
-	updateGamePassEmpty()
-
-	local entry = Instance.new("Frame")
-	entry.Size = UDim2.new(1, -16, 0, 54)
-	entry.LayoutOrder = -gamePassEventCount
-	entry.BackgroundColor3 = THEME.Card
-	entry.BorderSizePixel = 0
-	entry.Parent = gamePassLog
-
-	Instance.new("UICorner", entry).CornerRadius = UDim.new(0, 9)
-
-	local entryStroke = Instance.new("UIStroke", entry)
-	entryStroke.Color = THEME.Border
-	entryStroke.Thickness = 1
-
-	local dot = Instance.new("Frame")
-	dot.Size = UDim2.fromOffset(8, 8)
-	dot.Position = UDim2.fromOffset(13, 23)
-	dot.BackgroundColor3 = Color3.fromRGB(61, 255, 160)
-	dot.BorderSizePixel = 0
-	dot.Parent = entry
-
-	Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-
-	local typeLabel = Instance.new("TextLabel")
-	typeLabel.Size = UDim2.new(0, 72, 0, 20)
-	typeLabel.Position = UDim2.fromOffset(28, 4)
-	typeLabel.BackgroundTransparency = 1
-	typeLabel.Text = string.upper(label)
-	typeLabel.TextColor3 = Color3.fromRGB(160, 150, 210)
-	typeLabel.TextSize = 9
-	typeLabel.Font = FONT_BOLD
-	typeLabel.TextXAlignment = Enum.TextXAlignment.Left
-	typeLabel.Parent = entry
-
-	local idLabel = Instance.new("TextLabel")
-	idLabel.Size = UDim2.new(0, 190, 0, 22)
-	idLabel.Position = UDim2.fromOffset(28, 22)
-	idLabel.BackgroundTransparency = 1
-	idLabel.Text = tostring(id)
-	idLabel.TextColor3 = THEME.Text
-	idLabel.TextSize = 13
-	idLabel.Font = FONT_BOLD
-	idLabel.TextXAlignment = Enum.TextXAlignment.Left
-	idLabel.TextTruncate = Enum.TextTruncate.AtEnd
-	idLabel.Parent = entry
-
-	local buttonFrame = Instance.new("Frame")
-	buttonFrame.AnchorPoint = Vector2.new(1, 0)
-	buttonFrame.Size = UDim2.new(0, 188, 1, 0)
-	buttonFrame.Position = UDim2.new(1, -8, 0, 0)
-	buttonFrame.BackgroundTransparency = 1
-	buttonFrame.Parent = entry
-
-	local autoBtn = Instance.new("TextButton")
-	autoBtn.Size = UDim2.fromOffset(54, 28)
-	autoBtn.Position = UDim2.fromOffset(0, 13)
-	autoBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-	autoBtn.BorderSizePixel = 0
-	autoBtn.Text = "Auto"
-	autoBtn.TextColor3 = Color3.fromRGB(170, 165, 220)
-	autoBtn.TextSize = 10
-	autoBtn.Font = FONT_BOLD
-	autoBtn.AutoButtonColor = false
-	autoBtn.Parent = buttonFrame
-
-	Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 7)
-
-	local autoStroke = Instance.new("UIStroke", autoBtn)
-	autoStroke.Color = Color3.fromRGB(55, 50, 85)
-	autoStroke.Thickness = 1
-
-	local copyBtn = Instance.new("TextButton")
-	copyBtn.Size = UDim2.fromOffset(54, 28)
-	copyBtn.Position = UDim2.fromOffset(60, 13)
-	copyBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-	copyBtn.BorderSizePixel = 0
-	copyBtn.Text = "Copy"
-	copyBtn.TextColor3 = Color3.fromRGB(170, 165, 220)
-	copyBtn.TextSize = 10
-	copyBtn.Font = FONT_BOLD
-	copyBtn.AutoButtonColor = false
-	copyBtn.Parent = buttonFrame
-
-	Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 7)
-
-	local copyStroke = Instance.new("UIStroke", copyBtn)
-	copyStroke.Color = Color3.fromRGB(55, 50, 85)
-	copyStroke.Thickness = 1
-
-	local runBtn = Instance.new("TextButton")
-	runBtn.Size = UDim2.fromOffset(58, 28)
-	runBtn.Position = UDim2.fromOffset(120, 13)
-	runBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-	runBtn.BorderSizePixel = 0
-	runBtn.Text = "Run"
-	runBtn.TextColor3 = Color3.fromRGB(170, 165, 220)
-	runBtn.TextSize = 10
-	runBtn.Font = FONT_BOLD
-	runBtn.AutoButtonColor = false
-	runBtn.Parent = buttonFrame
-
-	Instance.new("UICorner", runBtn).CornerRadius = UDim.new(0, 7)
-
-	local runStroke = Instance.new("UIStroke", runBtn)
-	runStroke.Color = Color3.fromRGB(55, 50, 85)
-	runStroke.Thickness = 1
-
-	copyBtn.MouseButton1Click:Connect(function()
-		pcall(setclipboard, tostring(id))
-
-		copyBtn.Text = "Copied!"
-		copyBtn.TextColor3 = Color3.fromRGB(61, 255, 160)
-
-		task.delay(1.5, function()
-			if copyBtn.Parent then
-				copyBtn.Text = "Copy"
-				copyBtn.TextColor3 = Color3.fromRGB(170, 165, 220)
-			end
-		end)
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
+			Color = Color3.fromRGB(77, 225, 132)
+		}):Play()
 	end)
 
-	local autoActive = false
-	local autoLoop = nil
+	buyButton.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.Card
+		}):Play()
 
-	local function startAuto()
-		if autoActive then
-			return
-		end
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
+			Color = THEME.Border
+		}):Play()
+	end)
 
-		autoActive = true
+	buyButton.MouseButton1Click:Connect(function()
+		buyButton.Text = "..."
 
-		autoBtn.Text = "Auto ON"
-		autoBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-		autoBtn.BackgroundColor3 = Color3.fromRGB(40, 15, 15)
+		fireGamePassSignal(item.Id)
 
-		autoLoop = task.spawn(function()
-			local delayTime = autoSpeed > 0 and (1 / autoSpeed) or 0.01
-
-			while autoActive and autoBtn.Parent do
-				fireFakeSignal(signalType, id)
-				task.wait(delayTime)
+		task.delay(0.35, function()
+			if buyButton.Parent then
+				buyButton.Text = "SENT"
+				buyButton.BackgroundColor3 = Color3.fromRGB(77, 225, 132)
 			end
 		end)
 
-		activeAutoButtons[autoBtn] = {
-			active = true,
-			loop = autoLoop
-		}
-	end
-
-	local function stopAuto()
-		autoActive = false
-
-		if autoLoop then
-			task.cancel(autoLoop)
-			autoLoop = nil
-		end
-
-		activeAutoButtons[autoBtn] = nil
-		resetAutoButton(autoBtn)
-	end
-
-	autoBtn.MouseButton1Click:Connect(function()
-		if autoActive then
-			stopAuto()
-		else
-			startAuto()
-		end
-	end)
-
-	local holdStart = nil
-	local holdThread = nil
-	local spamLoop = nil
-	local isSpamming = false
-
-	local function startSpam()
-		if isSpamming then
-			return
-		end
-
-		isSpamming = true
-
-		runBtn.Text = "Spamming"
-		runBtn.TextColor3 = Color3.fromRGB(255, 200, 0)
-		runBtn.BackgroundColor3 = Color3.fromRGB(40, 30, 10)
-
-		spamLoop = task.spawn(function()
-			while isSpamming and runBtn.Parent do
-				fireFakeSignal(signalType, id)
-				task.wait(0.1)
+		task.delay(1.2, function()
+			if buyButton.Parent then
+				buyButton.Text = "BUY"
+				buyButton.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
 			end
 		end)
-
-		activeSpamButtons[runBtn] = {
-			active = true,
-			loop = spamLoop
-		}
-	end
-
-	local function stopSpam()
-		isSpamming = false
-
-		if spamLoop then
-			task.cancel(spamLoop)
-			spamLoop = nil
-		end
-
-		activeSpamButtons[runBtn] = nil
-		resetRunButton(runBtn)
-	end
-
-	local function onRunPress()
-		if isSpamming then
-			return
-		end
-
-		holdStart = tick()
-
-		holdThread = task.spawn(function()
-			while holdStart and tick() - holdStart < 3 do
-				task.wait(0.1)
-			end
-
-			if holdStart and not isSpamming then
-				startSpam()
-			end
-		end)
-	end
-
-	local function onRunRelease()
-		local heldDuration = holdStart and tick() - holdStart or 0
-
-		holdStart = nil
-
-		if holdThread then
-			task.cancel(holdThread)
-			holdThread = nil
-		end
-
-		if isSpamming then
-			stopSpam()
-			return
-		end
-
-		if heldDuration < 3 then
-			fireFakeSignal(signalType, id)
-
-			runBtn.Text = "Sent!"
-			runBtn.TextColor3 = Color3.fromRGB(61, 255, 160)
-			runBtn.BackgroundColor3 = Color3.fromRGB(10, 30, 20)
-
-			task.delay(1.2, function()
-				if runBtn.Parent and not isSpamming then
-					resetRunButton(runBtn)
-				end
-			end)
-		end
-	end
-
-	runBtn.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			onRunPress()
-		end
 	end)
-
-	runBtn.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			onRunRelease()
-		end
-	end)
-
-	entry.AncestryChanged:Connect(function()
-		if not entry.Parent then
-			if autoActive then
-				stopAuto()
-			end
-
-			if isSpamming then
-				stopSpam()
-			end
-
-			for i, savedEntry in ipairs(gamePassEntries) do
-				if savedEntry == entry then
-					table.remove(gamePassEntries, i)
-					break
-				end
-			end
-
-			updateGamePassEmpty()
-		end
-	end)
-
-	table.insert(gamePassEntries, entry)
-
-	gamePassCountLabel.Text = tostring(gamePassEventCount) ..
-		(gamePassEventCount == 1 and " event captured" or " events captured")
 end
 
-stopAllBtn.MouseButton1Click:Connect(function()
-	stopAllAutoAndSpam()
-	setGamePassStatus("ALL AUTO / SPAM STOPPED", Color3.fromRGB(255, 200, 0))
-end)
-
-clearBtn.MouseButton1Click:Connect(function()
-	stopAllAutoAndSpam()
-
-	for _, entry in ipairs(gamePassEntries) do
-		if entry and entry.Parent then
-			entry:Destroy()
-		end
-	end
-
-	table.clear(gamePassEntries)
-
-	gamePassEventCount = 0
-	gamePassCountLabel.Text = "0 events captured"
-
-	updateGamePassEmpty()
-	setGamePassStatus("EVENT LOG CLEARED", THEME.TextMuted)
-end)
-
-MarketplaceService.PromptProductPurchaseFinished:Connect(function(plr, id, bought)
-	if plr ~= player.UserId and plr ~= player then
-		return
-	end
-
-	if gamePassSuppressCounter > 0 then
-		return
-	end
-
-	addGamePassEvent("Product", id, "Product")
-end)
-
-MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(plr, id, bought)
-	if plr ~= player then
-		return
-	end
-
-	if gamePassSuppressCounter > 0 then
-		return
-	end
-
-	addGamePassEvent("Gamepass", id, "Gamepass")
-end)
-
-MarketplaceService.PromptBulkPurchaseFinished:Connect(function(userId, id, bought)
-	if userId ~= player.UserId then
-		return
-	end
-
-	if gamePassSuppressCounter > 0 then
-		return
-	end
-
-	addGamePassEvent("Bulk", id, "Bulk")
-end)
-
-MarketplaceService.PromptPurchaseFinished:Connect(function(userId, id, bought)
-	if userId ~= player.UserId then
-		return
-	end
-
-	if gamePassSuppressCounter > 0 then
-		return
-	end
-
-	addGamePassEvent("Purchase", id, "Purchase")
-end)
-
-updateGamePassEmpty()
+for order, item in ipairs(gamePassItems) do
+	createGamePassButton(item, order)
+end
 
 registerPage("Game Pass", {gamePassPage})
