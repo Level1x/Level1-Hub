@@ -2862,6 +2862,16 @@ local gamePassItems = {
 	},
 }
 
+local gamePassProductIndex = {}
+
+for _, zone in ipairs(gamePassItems) do
+	for _, item in ipairs(zone.Items) do
+		gamePassProductIndex[item.Id] = item
+	end
+end
+
+local pendingGamePassButtons = {}
+
 
 -- ============================================================================
 -- Game Pass Functions
@@ -2964,13 +2974,120 @@ gamePassContent.Position = UDim2.new(0, 15, 0, 73)
 gamePassContent.BackgroundTransparency = 1
 gamePassContent.Parent = gamePassPanel
 
+local gamePassProductGrid = Instance.new("Frame")
+gamePassProductGrid.Name = "ProductGrid"
+gamePassProductGrid.Size = UDim2.new(1, 0, 0, 245)
+gamePassProductGrid.BackgroundTransparency = 1
+gamePassProductGrid.Parent = gamePassContent
+
 local gamePassZoneLayout = Instance.new("UIGridLayout")
 gamePassZoneLayout.CellSize = UDim2.new(0.5, -8, 1, 0)
 gamePassZoneLayout.CellPadding = UDim2.new(0, 16, 0, 0)
 gamePassZoneLayout.FillDirection = Enum.FillDirection.Horizontal
 gamePassZoneLayout.FillDirectionMaxCells = 2
 gamePassZoneLayout.SortOrder = Enum.SortOrder.LayoutOrder
-gamePassZoneLayout.Parent = gamePassContent
+gamePassZoneLayout.Parent = gamePassProductGrid
+
+local purchaseLogPanel = Instance.new("Frame")
+purchaseLogPanel.Name = "PurchaseLogPanel"
+purchaseLogPanel.Size = UDim2.new(1, 0, 1, -257)
+purchaseLogPanel.Position = UDim2.fromOffset(0, 257)
+purchaseLogPanel.BackgroundColor3 = Color3.fromRGB(14, 31, 46)
+purchaseLogPanel.BorderSizePixel = 0
+purchaseLogPanel.Parent = gamePassContent
+
+Instance.new("UICorner", purchaseLogPanel).CornerRadius = UDim.new(0, 12)
+
+local purchaseLogStroke = Instance.new("UIStroke", purchaseLogPanel)
+purchaseLogStroke.Color = THEME.Border
+purchaseLogStroke.Thickness = 1
+
+local purchaseLogTitle = Instance.new("TextLabel")
+purchaseLogTitle.Size = UDim2.new(1, -28, 0, 24)
+purchaseLogTitle.Position = UDim2.fromOffset(14, 10)
+purchaseLogTitle.BackgroundTransparency = 1
+purchaseLogTitle.Text = "PURCHASE EVENTS"
+purchaseLogTitle.TextColor3 = THEME.Text
+purchaseLogTitle.Font = FONT_BOLD
+purchaseLogTitle.TextSize = 12
+purchaseLogTitle.TextXAlignment = Enum.TextXAlignment.Left
+purchaseLogTitle.Parent = purchaseLogPanel
+
+local purchaseLogList = Instance.new("ScrollingFrame")
+purchaseLogList.Name = "PurchaseLogList"
+purchaseLogList.Size = UDim2.new(1, -28, 1, -46)
+purchaseLogList.Position = UDim2.fromOffset(14, 38)
+purchaseLogList.BackgroundTransparency = 1
+purchaseLogList.BorderSizePixel = 0
+purchaseLogList.CanvasSize = UDim2.new(0, 0, 0, 0)
+purchaseLogList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+purchaseLogList.ScrollBarThickness = 2
+purchaseLogList.ScrollBarImageColor3 = Color3.fromRGB(88, 123, 140)
+purchaseLogList.Parent = purchaseLogPanel
+
+local purchaseLogLayout = Instance.new("UIListLayout")
+purchaseLogLayout.Padding = UDim.new(0, 6)
+purchaseLogLayout.SortOrder = Enum.SortOrder.LayoutOrder
+purchaseLogLayout.Parent = purchaseLogList
+
+local purchaseEventCount = 0
+
+local function addPurchaseEvent(item, purchased)
+	purchaseEventCount += 1
+
+	local entry = Instance.new("Frame")
+	entry.Size = UDim2.new(1, 0, 0, 32)
+	entry.LayoutOrder = -purchaseEventCount
+	entry.BackgroundColor3 = THEME.Card
+	entry.BorderSizePixel = 0
+	entry.Parent = purchaseLogList
+	Instance.new("UICorner", entry).CornerRadius = UDim.new(0, 8)
+
+	local entryStroke = Instance.new("UIStroke", entry)
+	entryStroke.Color = purchased and Color3.fromRGB(77, 190, 112) or Color3.fromRGB(120, 76, 76)
+	entryStroke.Thickness = 1
+
+	local statusDot = Instance.new("Frame")
+	statusDot.Size = UDim2.new(0, 7, 0, 7)
+	statusDot.Position = UDim2.fromOffset(12, 13)
+	statusDot.BackgroundColor3 = purchased and Color3.fromRGB(77, 225, 132) or Color3.fromRGB(255, 120, 120)
+	statusDot.BorderSizePixel = 0
+	statusDot.Parent = entry
+	Instance.new("UICorner", statusDot).CornerRadius = UDim.new(1, 0)
+
+	local eventName = Instance.new("TextLabel")
+	eventName.Size = UDim2.new(1, -140, 1, 0)
+	eventName.Position = UDim2.fromOffset(28, 0)
+	eventName.BackgroundTransparency = 1
+	eventName.Text = string.upper(item.Name)
+	eventName.TextColor3 = THEME.Text
+	eventName.Font = FONT_BOLD
+	eventName.TextSize = 11
+	eventName.TextXAlignment = Enum.TextXAlignment.Left
+	eventName.TextTruncate = Enum.TextTruncate.AtEnd
+	eventName.Parent = entry
+
+	local eventStatus = Instance.new("TextLabel")
+	eventStatus.AnchorPoint = Vector2.new(1, 0)
+	eventStatus.Size = UDim2.new(0, 100, 1, 0)
+	eventStatus.Position = UDim2.new(1, -12, 0, 0)
+	eventStatus.BackgroundTransparency = 1
+	eventStatus.Text = purchased and "PURCHASED" or "CANCELLED"
+	eventStatus.TextColor3 = purchased and Color3.fromRGB(77, 225, 132) or Color3.fromRGB(255, 140, 140)
+	eventStatus.Font = FONT_BOLD
+	eventStatus.TextSize = 10
+	eventStatus.TextXAlignment = Enum.TextXAlignment.Right
+	eventStatus.Parent = entry
+end
+
+local function setPurchaseButtonState(item, text, color)
+	local buttonData = pendingGamePassButtons[item.Id]
+
+	if buttonData and buttonData.Label and buttonData.Label.Parent then
+		buttonData.Label.Text = text
+		buttonData.Label.BackgroundColor3 = color or buttonData.Accent
+	end
+end
 
 local function createGamePassButton(parent, item, accentColor, order)
 	local button = Instance.new("TextButton")
@@ -2999,7 +3116,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 
 	local nameLabel = Instance.new("TextLabel")
 	nameLabel.Size = UDim2.new(1, -62, 0, 32)
-	nameLabel.Position = UDim2.fromOffset(26, 17)
+	nameLabel.Position = UDim2.fromOffset(26, 3)
 	nameLabel.BackgroundTransparency = 1
 	nameLabel.Text = string.upper(item.Name)
 	nameLabel.TextColor3 = THEME.Text
@@ -3043,15 +3160,20 @@ local function createGamePassButton(parent, item, accentColor, order)
 
 	button.MouseButton1Click:Connect(function()
 		buyLabel.Text = "WAIT"
+		pendingGamePassButtons[item.Id] = {Label = buyLabel, Accent = accentColor}
+
 		if promptMarketplacePurchase(item) then
 			buyLabel.Text = "OPEN"
 			setGamePassStatus("PURCHASE PROMPT OPENED", accentColor)
-			task.delay(1, function()
+			task.delay(8, function()
 				if buyLabel.Parent then
+					pendingGamePassButtons[item.Id] = nil
 					buyLabel.Text = "BUY"
+					buyLabel.BackgroundColor3 = accentColor
 				end
 			end)
 		else
+			pendingGamePassButtons[item.Id] = nil
 			buyLabel.Text = "BUY"
 			setGamePassStatus("PROMPT FAILED", Color3.fromRGB(255, 120, 120))
 		end
@@ -3076,7 +3198,7 @@ local function createGamePassZone(zone, order)
 
 	local titleDot = Instance.new("Frame")
 	titleDot.Size = UDim2.new(0, 10, 0, 10)
-	titleDot.Position = UDim2.fromOffset(16, 21)
+	titleDot.Position = UDim2.fromOffset(16, 18)
 	titleDot.BackgroundColor3 = zone.Color
 	titleDot.BorderSizePixel = 0
 	titleDot.Parent = card
@@ -3084,7 +3206,7 @@ local function createGamePassZone(zone, order)
 
 	local zoneTitle = Instance.new("TextLabel")
 	zoneTitle.Size = UDim2.new(1, -44, 0, 28)
-	zoneTitle.Position = UDim2.fromOffset(34, 12)
+	zoneTitle.Position = UDim2.fromOffset(34, 9)
 	zoneTitle.BackgroundTransparency = 1
 	zoneTitle.Text = string.upper(zone.Category)
 	zoneTitle.TextColor3 = THEME.Text
@@ -3095,7 +3217,7 @@ local function createGamePassZone(zone, order)
 
 	local divider = Instance.new("Frame")
 	divider.Size = UDim2.new(1, -32, 0, 1)
-	divider.Position = UDim2.fromOffset(16, 50)
+	divider.Position = UDim2.fromOffset(16, 45)
 	divider.BackgroundColor3 = THEME.Border
 	divider.BackgroundTransparency = 0.25
 	divider.BorderSizePixel = 0
@@ -3103,19 +3225,19 @@ local function createGamePassZone(zone, order)
 
 	local list = Instance.new("Frame")
 	list.Name = "PassList"
-	list.Size = UDim2.new(1, -32, 1, -70)
-	list.Position = UDim2.fromOffset(16, 62)
+	list.Size = UDim2.new(1, -32, 1, -65)
+	list.Position = UDim2.fromOffset(16, 55)
 	list.BackgroundTransparency = 1
 	list.Parent = card
 
 	local listLayout = Instance.new("UIListLayout")
-	listLayout.Padding = UDim.new(0, 10)
+	listLayout.Padding = UDim.new(0, 7)
 	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	listLayout.Parent = list
 
 	for itemOrder, item in ipairs(zone.Items) do
 		local passButton = createGamePassButton(list, item, zone.Color, itemOrder)
-		passButton.Size = UDim2.new(1, 0, 0, 78)
+		passButton.Size = UDim2.new(1, 0, 0, 38)
 	end
 
 	return card
@@ -3124,5 +3246,38 @@ end
 for zoneOrder, zone in ipairs(gamePassItems) do
 	createGamePassZone(zone, zoneOrder)
 end
+
+MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, productId, purchased)
+	if userId ~= player.UserId then
+		return
+	end
+
+	local item = gamePassProductIndex[productId]
+
+	if not item then
+		return
+	end
+
+	if purchased then
+		setGamePassStatus("PURCHASED " .. string.upper(item.Name), Color3.fromRGB(77, 225, 132))
+		setPurchaseButtonState(item, "DONE", Color3.fromRGB(77, 225, 132))
+	else
+		setGamePassStatus("CANCELLED " .. string.upper(item.Name), Color3.fromRGB(255, 140, 140))
+		setPurchaseButtonState(item, "BUY", Color3.fromRGB(255, 140, 140))
+	end
+
+	addPurchaseEvent(item, purchased)
+
+	task.delay(1.4, function()
+		local buttonData = pendingGamePassButtons[productId]
+
+		if buttonData and buttonData.Label and buttonData.Label.Parent then
+			buttonData.Label.Text = "BUY"
+			buttonData.Label.BackgroundColor3 = buttonData.Accent
+		end
+
+		pendingGamePassButtons[productId] = nil
+	end)
+end)
 
 registerPage("Game Pass", {gamePassPage})
