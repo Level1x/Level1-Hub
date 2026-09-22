@@ -2094,24 +2094,37 @@ collectTreasureButton.BackgroundColor3 = THEME.Card
 collectTreasureButton.TextColor3 = THEME.TextMuted
 collectTreasureButton.Active = true
 
-local teleportLocations = {
-	{"[Spawn Vehicles] Shipwright", Vector3.new(-41.66991, 237.69075, 771.37616)},
-	{"[Market Place] Mr.Detok", Vector3.new(27.79836, 239.60448, 832.53687)},
-	{"[Gear Shop] Mr.Wiwok", Vector3.new(-36.18216, 237.68404, 838.65741)},
-	{"[Gear Shop] Unc.Nathan Lee", Vector3.new(220.21776, 242.70007, -1214.91553)},
-	{"[Skill Upgrade]",Vector3.new(-40.92221, 237.69075, 794.19263)},
-	{"[Enchantment Store] Eldrin Stone Seller",Vector3.new(974.72198, 263.96902, -1013.63672)},
-	{"[Enchantment] Skull Witch",Vector3.new(961.12146, 239.28392, 617.71057)},
-	{"Fisher Man", Vector3.new(-9.16492, 237.69075, 791.66632)},
-	{"Mr.Trappy", Vector3.new(-406.91226, 236.77856, 87.26193)},
-	{"White Beard",Vector3.new(-811.07007, 240.93538, 104.42932)},
-	{"Captain Samoodra",Vector3.new(473.40494, 233.29327, -762.24146)},
-	{"Dove The Diver",Vector3.new(277.70627, 238.83917, -346.61185)},
-	
-	{"[Spawn Vehicles] Frostfire Isies",Vector3.new(12.74754, 243.60753, -943.30499)},
-	{"[Market Place] Tog the Tough",Vector3.new(20.00410, 243.02095, -916.92664)},
-	{"Elle The Pirate", Vector3.new(-19.74297, 243.04610, -910.01215)},
-	
+local teleportZones = {
+	{
+		Name = "Dok's",
+		Locations = {
+			{"[Spawn Vehicles]", Vector3.new(-41.66991, 237.69075, 771.37616)},
+			{"[Market Place]", Vector3.new(27.79836, 239.60448, 832.53687)},
+			{"[Gear Shop] Mr.Wiwok", Vector3.new(-36.18216, 237.68404, 838.65741)},
+			{"[Skill Upgrade]", Vector3.new(-40.92221, 237.69075, 794.19263)},
+			{"Fisher Man", Vector3.new(-9.16492, 237.69075, 791.66632)}
+		}
+	},
+	{
+		Name = "Ocean",
+		Locations = {
+			{"[Enchantment]", Vector3.new(961.12146, 239.28392, 617.71057)},
+			{"Mr.Trappy", Vector3.new(-406.91226, 236.77856, 87.26193)},
+			{"White Beard", Vector3.new(-811.07007, 240.93538, 104.42932)},
+			{"Captain Samoodra", Vector3.new(473.40494, 233.29327, -762.24146)},
+			{"Dove The Diver", Vector3.new(277.70627, 238.83917, -346.61185)}
+		}
+	},
+	{
+		Name = "Frostfire Isies",
+		Locations = {
+			{"[Spawn Vehicles]", Vector3.new(12.74754, 243.60753, -943.30499)},
+			{"[Market Place]", Vector3.new(20.00410, 243.02095, -916.92664)},
+			{"[Gear Shop] Unc.Nathan", Vector3.new(220.21776, 242.70007, -1214.91553)},
+			{"[Enchantment Store]", Vector3.new(974.72198, 263.96902, -1013.63672)},
+			{"Elle The Pirate", Vector3.new(-19.74297, 243.04610, -910.01215)}
+		}
+	}
 }
 
 local function teleportTo(position)
@@ -2177,15 +2190,31 @@ teleportList.ScrollBarImageColor3 = THEME.Accent
 teleportList.CanvasSize = UDim2.new(0, 0, 0, 0)
 teleportList.Parent = teleportPanel
 
-local teleportGrid = Instance.new("UIGridLayout")
-teleportGrid.CellSize = UDim2.new(0, 260, 0, 55)
-teleportGrid.CellPadding = UDim2.new(0, 10, 0, 10)
-teleportGrid.SortOrder = Enum.SortOrder.LayoutOrder
-teleportGrid.Parent = teleportList
+local teleportLayout = Instance.new("UIListLayout")
+teleportLayout.Padding = UDim.new(0, 8)
+teleportLayout.SortOrder = Enum.SortOrder.LayoutOrder
+teleportLayout.Parent = teleportList
+
+local function createTeleportZoneTitle(name, order)
+	local label = Instance.new("TextLabel")
+	label.Name = name .. "Title"
+	label.Size = UDim2.new(1, -4, 0, 30)
+	label.LayoutOrder = order
+	label.BackgroundTransparency = 1
+	label.Text = string.upper(name)
+	label.TextColor3 = THEME.Accent
+	label.Font = FONT_BOLD
+	label.TextSize = 11
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = teleportList
+
+	return label
+end
 
 local function createTeleportButton(name, position, order)
 	local button = Instance.new("TextButton")
 	button.Name = name
+	button.Size = UDim2.new(1, -4, 0, 48)
 	button.LayoutOrder = order
 	button.BackgroundColor3 = THEME.Card
 	button.BorderSizePixel = 0
@@ -2208,6 +2237,10 @@ local function createTeleportButton(name, position, order)
 			BackgroundColor3 = THEME.CardHover,
 			TextColor3 = THEME.Accent
 		}):Play()
+
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
+			Color = THEME.Accent
+		}):Play()
 	end)
 
 	button.MouseLeave:Connect(function()
@@ -2215,15 +2248,33 @@ local function createTeleportButton(name, position, order)
 			BackgroundColor3 = THEME.Card,
 			TextColor3 = THEME.Text
 		}):Play()
+
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
+			Color = THEME.Border
+		}):Play()
 	end)
 
 	button.MouseButton1Click:Connect(function()
 		teleportTo(position)
 	end)
+
+	return button
 end
 
-for index, location in ipairs(teleportLocations) do
-	createTeleportButton(location[1], location[2], index)
+local teleportOrder = 0
+
+for _, zone in ipairs(teleportZones) do
+	teleportOrder += 1
+	createTeleportZoneTitle(zone.Name, teleportOrder)
+
+	for _, location in ipairs(zone.Locations) do
+		teleportOrder += 1
+		createTeleportButton(
+			location[1],
+			location[2],
+			teleportOrder
+		)
+	end
 end
 
 local function updateTeleportCanvas()
@@ -2231,12 +2282,13 @@ local function updateTeleportCanvas()
 		0,
 		0,
 		0,
-		teleportGrid.AbsoluteContentSize.Y + 10
+		teleportLayout.AbsoluteContentSize.Y + 10
 	)
 end
 
-teleportGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateTeleportCanvas)
-updateTeleportCanvas()
+teleportLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateTeleportCanvas)
+
+task.defer(updateTeleportCanvas)
 
 local function switchTab(name)
 	if not tabs[name] then
