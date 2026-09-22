@@ -2871,6 +2871,7 @@ for _, zone in ipairs(gamePassItems) do
 end
 
 local pendingGamePassButtons = {}
+local GAME_PASS_UI_TEST_MODE = true
 
 
 -- ============================================================================
@@ -2964,7 +2965,7 @@ local gamePassInfo = Instance.new("TextLabel")
 gamePassInfo.Size = UDim2.new(1, -365, 0, 25)
 gamePassInfo.Position = UDim2.new(0, 15, 0, 43)
 gamePassInfo.BackgroundTransparency = 1
-gamePassInfo.Text = "Choose an item to open its purchase prompt"
+gamePassInfo.Text = GAME_PASS_UI_TEST_MODE and "UI test mode: buttons preview the purchased state only" or "Choose an item to open its purchase prompt"
 gamePassInfo.TextColor3 = THEME.TextMuted
 gamePassInfo.Font = FONT_REGULAR
 gamePassInfo.TextSize = 11
@@ -2975,7 +2976,7 @@ local gamePassVersion = Instance.new("TextLabel")
 gamePassVersion.Size = UDim2.new(0, 120, 0, 18)
 gamePassVersion.Position = UDim2.new(0, 15, 0, 63)
 gamePassVersion.BackgroundTransparency = 1
-gamePassVersion.Text = "LAYOUT FIX 2"
+gamePassVersion.Text = GAME_PASS_UI_TEST_MODE and "UI TEST MODE" or "LAYOUT FIX 2"
 gamePassVersion.TextColor3 = Color3.fromRGB(88, 123, 140)
 gamePassVersion.Font = FONT_BOLD
 gamePassVersion.TextSize = 9
@@ -3192,6 +3193,23 @@ local function createGamePassButton(parent, item, accentColor, order)
 	button.MouseButton1Click:Connect(function()
 		buyLabel.Text = "WAIT"
 		pendingGamePassButtons[item.Id] = {Label = buyLabel, Accent = accentColor}
+
+		if GAME_PASS_UI_TEST_MODE then
+			buyLabel.Text = "DONE"
+			buyLabel.BackgroundColor3 = Color3.fromRGB(77, 225, 132)
+			setGamePassStatus("UI TEST PURCHASED " .. string.upper(item.Name), Color3.fromRGB(77, 225, 132))
+			addPurchaseEvent(item, true)
+
+			task.delay(1.4, function()
+				if buyLabel.Parent then
+					pendingGamePassButtons[item.Id] = nil
+					buyLabel.Text = "BUY"
+					buyLabel.BackgroundColor3 = accentColor
+				end
+			end)
+
+			return
+		end
 
 		local prompted, promptError = promptMarketplacePurchase(item)
 
