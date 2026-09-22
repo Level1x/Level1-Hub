@@ -2844,20 +2844,20 @@ local gamePassItems = {
 		Category = "Money",
 		Color = Color3.fromRGB(255, 195, 65),
 		Items = {
-			{Name = "+1000 Money", Id = 3304032773, Type = "Product"},
-			{Name = "+10K Money", Id = 3304032980, Type = "Product"},
-			{Name = "+100K Money", Id = 3304033107, Type = "Product"},
-			{Name = "+1M Money", Id = 3304033285, Type = "Product"},
+			{Name = "+1000 Money", Id = 3304032773, Type = "Auto"},
+			{Name = "+10K Money", Id = 3304032980, Type = "Auto"},
+			{Name = "+100K Money", Id = 3304033107, Type = "Auto"},
+			{Name = "+1M Money", Id = 3304033285, Type = "Auto"},
 		}
 	},
 	{
 		Category = "Gems",
 		Color = Color3.fromRGB(105, 215, 255),
 		Items = {
-			{Name = "+100 Gems", Id = 3304033536, Type = "Product"},
-			{Name = "+500 Gems", Id = 3304033742, Type = "Product"},
-			{Name = "+1000 Gems", Id = 3304033861, Type = "Product"},
-			{Name = "+10K Gems", Id = 3304033993, Type = "Product"},
+			{Name = "+100 Gems", Id = 3304033536, Type = "Auto"},
+			{Name = "+500 Gems", Id = 3304033742, Type = "Auto"},
+			{Name = "+1000 Gems", Id = 3304033861, Type = "Auto"},
+			{Name = "+10K Gems", Id = 3304033993, Type = "Auto"},
 		}
 	},
 }
@@ -2881,18 +2881,44 @@ local function promptMarketplacePurchase(item)
 	local id = tonumber(item.Id)
 
 	if not id then
-		return false
+		return false, "INVALID ID"
 	end
 
-	local ok = pcall(function()
-		if item.Type == "GamePass" then
-			MarketplaceService:PromptGamePassPurchase(player, id)
-		else
+	local function tryProduct()
+		return pcall(function()
 			MarketplaceService:PromptProductPurchase(player, id)
-		end
-	end)
+		end)
+	end
 
-	return ok
+	local function tryGamePass()
+		return pcall(function()
+			MarketplaceService:PromptGamePassPurchase(player, id)
+		end)
+	end
+
+	if item.Type == "Product" then
+		local ok, err = tryProduct()
+		return ok, err
+	elseif item.Type == "GamePass" then
+		local ok, err = tryGamePass()
+		return ok, err
+	end
+
+	local productOk, productErr = tryProduct()
+
+	if productOk then
+		item.Type = "Product"
+		return true
+	end
+
+	local gamePassOk, gamePassErr = tryGamePass()
+
+	if gamePassOk then
+		item.Type = "GamePass"
+		return true
+	end
+
+	return false, tostring(productErr or gamePassErr or "PROMPT BLOCKED")
 end
 
 
@@ -2944,6 +2970,17 @@ gamePassInfo.Font = FONT_REGULAR
 gamePassInfo.TextSize = 11
 gamePassInfo.TextXAlignment = Enum.TextXAlignment.Left
 gamePassInfo.Parent = gamePassPanel
+
+local gamePassVersion = Instance.new("TextLabel")
+gamePassVersion.Size = UDim2.new(0, 120, 0, 18)
+gamePassVersion.Position = UDim2.new(0, 15, 0, 63)
+gamePassVersion.BackgroundTransparency = 1
+gamePassVersion.Text = "LAYOUT FIX 2"
+gamePassVersion.TextColor3 = Color3.fromRGB(88, 123, 140)
+gamePassVersion.Font = FONT_BOLD
+gamePassVersion.TextSize = 9
+gamePassVersion.TextXAlignment = Enum.TextXAlignment.Left
+gamePassVersion.Parent = gamePassPanel
 
 local gamePassStatus = Instance.new("TextLabel")
 gamePassStatus.AnchorPoint = Vector2.new(1, 0)
@@ -3156,7 +3193,9 @@ local function createGamePassButton(parent, item, accentColor, order)
 		buyLabel.Text = "WAIT"
 		pendingGamePassButtons[item.Id] = {Label = buyLabel, Accent = accentColor}
 
-		if promptMarketplacePurchase(item) then
+		local prompted, promptError = promptMarketplacePurchase(item)
+
+		if prompted then
 			buyLabel.Text = "OPEN"
 			setGamePassStatus("PURCHASE PROMPT OPENED", accentColor)
 			task.delay(8, function()
@@ -3169,7 +3208,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 		else
 			pendingGamePassButtons[item.Id] = nil
 			buyLabel.Text = "BUY"
-			setGamePassStatus("PROMPT FAILED", Color3.fromRGB(255, 120, 120))
+			setGamePassStatus("FAILED: " .. string.upper(tostring(promptError)), Color3.fromRGB(255, 120, 120))
 		end
 	end)
 
