@@ -345,6 +345,11 @@ end)
 minimize.MouseButton1Click:Connect(function()
 	isMinimized = not isMinimized
 
+	-- Center the title in the 68px header while the subtitle is hidden.
+	TweenService:Create(title, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = isMinimized and UDim2.new(0, 46, 0.5, -15) or UDim2.new(0, 46, 0, 10)
+	}):Play()
+
 	if isMinimized then
 		minimize.Text = "+"
 
