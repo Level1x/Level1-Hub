@@ -2844,20 +2844,20 @@ local gamePassItems = {
 		Category = "Money",
 		Color = Color3.fromRGB(255, 195, 65),
 		Items = {
-			{Name = "+1000 Money", Id = 3304032773},
-			{Name = "+10K Money", Id = 3304032980},
-			{Name = "+100K Money", Id = 3304033107},
-			{Name = "+1M Money", Id = 3304033285},
+			{Name = "+1000 Money", Id = 3304032773, Type = "Product"},
+			{Name = "+10K Money", Id = 3304032980, Type = "Product"},
+			{Name = "+100K Money", Id = 3304033107, Type = "Product"},
+			{Name = "+1M Money", Id = 3304033285, Type = "Product"},
 		}
 	},
 	{
 		Category = "Gems",
 		Color = Color3.fromRGB(105, 215, 255),
 		Items = {
-			{Name = "+100 Gems", Id = 3304033536},
-			{Name = "+500 Gems", Id = 3304033742},
-			{Name = "+1000 Gems", Id = 3304033861},
-			{Name = "+10K Gems", Id = 3304033993},
+			{Name = "+100 Gems", Id = 3304033536, Type = "Product"},
+			{Name = "+500 Gems", Id = 3304033742, Type = "Product"},
+			{Name = "+1000 Gems", Id = 3304033861, Type = "Product"},
+			{Name = "+10K Gems", Id = 3304033993, Type = "Product"},
 		}
 	},
 }
@@ -2867,15 +2867,19 @@ local gamePassItems = {
 -- Game Pass Functions
 -- ============================================================================
 
-local function promptGamePassPurchase(gamePassId)
-	local id = tonumber(gamePassId)
+local function promptMarketplacePurchase(item)
+	local id = tonumber(item.Id)
 
 	if not id then
 		return false
 	end
 
 	local ok = pcall(function()
-		MarketplaceService:PromptGamePassPurchase(player, id)
+		if item.Type == "GamePass" then
+			MarketplaceService:PromptGamePassPurchase(player, id)
+		else
+			MarketplaceService:PromptProductPurchase(player, id)
+		end
 	end)
 
 	return ok
@@ -2924,7 +2928,7 @@ local gamePassInfo = Instance.new("TextLabel")
 gamePassInfo.Size = UDim2.new(1, -30, 0, 25)
 gamePassInfo.Position = UDim2.new(0, 15, 0, 43)
 gamePassInfo.BackgroundTransparency = 1
-gamePassInfo.Text = "Choose a pass to open its purchase prompt"
+gamePassInfo.Text = "Choose an item to open its purchase prompt"
 gamePassInfo.TextColor3 = THEME.TextMuted
 gamePassInfo.Font = FONT_REGULAR
 gamePassInfo.TextSize = 11
@@ -2972,8 +2976,8 @@ local function createGamePassButton(parent, item, accentColor, order)
 	Instance.new("UICorner", accentLine).CornerRadius = UDim.new(1, 0)
 
 	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, -62, 0, 28)
-	nameLabel.Position = UDim2.fromOffset(26, 12)
+	nameLabel.Size = UDim2.new(1, -62, 0, 32)
+	nameLabel.Position = UDim2.fromOffset(26, 17)
 	nameLabel.BackgroundTransparency = 1
 	nameLabel.Text = string.upper(item.Name)
 	nameLabel.TextColor3 = THEME.Text
@@ -2982,17 +2986,6 @@ local function createGamePassButton(parent, item, accentColor, order)
 	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
 	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 	nameLabel.Parent = button
-
-	local idLabel = Instance.new("TextLabel")
-	idLabel.Size = UDim2.new(1, -62, 0, 24)
-	idLabel.Position = UDim2.fromOffset(26, 44)
-	idLabel.BackgroundTransparency = 1
-	idLabel.Text = "ID " .. tostring(item.Id)
-	idLabel.TextColor3 = THEME.TextMuted
-	idLabel.Font = FONT_REGULAR
-	idLabel.TextSize = 11
-	idLabel.TextXAlignment = Enum.TextXAlignment.Left
-	idLabel.Parent = button
 
 	local buyLabel = Instance.new("TextLabel")
 	buyLabel.AnchorPoint = Vector2.new(1, 0.5)
@@ -3027,7 +3020,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 	end)
 
 	button.MouseButton1Click:Connect(function()
-		if promptGamePassPurchase(item.Id) then
+		if promptMarketplacePurchase(item) then
 			buyLabel.Text = "OPEN"
 			task.delay(1, function()
 				if buyLabel.Parent then
