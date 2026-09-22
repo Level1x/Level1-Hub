@@ -1,37 +1,38 @@
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 local oldGui = playerGui:FindFirstChild("FishCatcherGui")
+
 if oldGui then
 	oldGui:Destroy()
 end
 
-local Assets = ReplicatedStorage:WaitForChild("A__Assets")
-local FishAssets = Assets:WaitForChild("Fish")
-local TreasureAssets = Assets:WaitForChild("Treasure")
+local fishFolder = ReplicatedStorage
+	:WaitForChild("A__Assets")
+	:WaitForChild("Fish")
 
-local FishData = require(
-	ReplicatedStorage
-		:WaitForChild("Shared")
-		:WaitForChild("Data")
-		:WaitForChild("Template")
-		:WaitForChild("Fish")
-)
+local treasureFolder = ReplicatedStorage
+	:WaitForChild("A__Assets")
+	:WaitForChild("Treasure")
 
-local TreasureData = require(
-	ReplicatedStorage
-		:WaitForChild("Shared")
-		:WaitForChild("Data")
-		:WaitForChild("Template")
-		:WaitForChild("Treasures")
-)
+local fishDataModule = ReplicatedStorage
+	:WaitForChild("Shared")
+	:WaitForChild("Data")
+	:WaitForChild("Template")
+	:WaitForChild("Fish")
 
-local FishRemote = ReplicatedStorage
+local treasureDataModule = ReplicatedStorage
+	:WaitForChild("Shared")
+	:WaitForChild("Data")
+	:WaitForChild("Template")
+	:WaitForChild("Treasures")
+
+local addToInventoryRF = ReplicatedStorage
 	:WaitForChild("Packages")
 	:WaitForChild("_Index")
 	:WaitForChild("sleitnick_knit@1.7.0")
@@ -41,7 +42,7 @@ local FishRemote = ReplicatedStorage
 	:WaitForChild("RF")
 	:WaitForChild("AddToInventory")
 
-local TreasureRemote = ReplicatedStorage
+local treasureAddToInventoryRF = ReplicatedStorage
 	:WaitForChild("Packages")
 	:WaitForChild("_Index")
 	:WaitForChild("sleitnick_knit@1.7.0")
@@ -52,20 +53,235 @@ local TreasureRemote = ReplicatedStorage
 	:WaitForChild("AddToInventory")
 
 local THEME = {
-	Background = Color3.fromRGB(7, 14, 20),
-	Sidebar = Color3.fromRGB(10, 21, 29),
-	Panel = Color3.fromRGB(12, 25, 34),
-	Card = Color3.fromRGB(16, 32, 42),
-	CardHover = Color3.fromRGB(21, 43, 55),
-	Border = Color3.fromRGB(32, 57, 68),
-	Accent = Color3.fromRGB(52, 211, 153),
-	Text = Color3.fromRGB(235, 248, 245),
-	TextMuted = Color3.fromRGB(139, 164, 170),
-	Danger = Color3.fromRGB(248, 113, 113)
+	Background = Color3.fromRGB(13, 15, 22),
+	Sidebar = Color3.fromRGB(16, 18, 27),
+	Panel = Color3.fromRGB(18, 20, 30),
+
+	Card = Color3.fromRGB(27, 30, 42),
+	CardHover = Color3.fromRGB(35, 39, 54),
+	CardSelected = Color3.fromRGB(39, 44, 62),
+
+	Accent = Color3.fromRGB(0, 185, 255),
+	AccentDark = Color3.fromRGB(0, 130, 190),
+
+	Text = Color3.fromRGB(245, 247, 255),
+	TextMuted = Color3.fromRGB(130, 136, 153),
+
+	Border = Color3.fromRGB(35, 39, 53),
+
+	Common = Color3.fromRGB(170, 175, 185),
+	Rare = Color3.fromRGB(65, 225, 120),
+	SuperRare = Color3.fromRGB(70, 190, 255),
+	Mythical = Color3.fromRGB(245, 105, 190),
+	Legendary = Color3.fromRGB(255, 195, 65),
+	NeverSeen = Color3.fromRGB(255, 85, 85),
+	Arcana = Color3.fromRGB(90, 195, 120),
+	Eternal = Color3.fromRGB(75, 145, 160),
+	Apex = Color3.fromRGB(175, 55, 255),
+
+	Unknown = Color3.fromRGB(90, 95, 110),
 }
 
-local FONT_BOLD = Enum.Font.GothamBold
 local FONT_REGULAR = Enum.Font.Gotham
+local FONT_BOLD = Enum.Font.GothamBold
+
+local RARITY_ORDER = {
+	Common = 1,
+	Rare = 2,
+	SuperRare = 3,
+	Mythical = 4,
+	Legendary = 5,
+	NeverSeen = 6,
+	Arcana = 7,
+	Eternal = 8,
+	Apex = 9,
+}
+
+local RARITY_DISPLAY = {
+	Common = "COMMON",
+	Rare = "RARE",
+	SuperRare = "SUPER RARE",
+	Mythical = "MYTHICAL",
+	Legendary = "LEGENDARY",
+	NeverSeen = "NEVER SEEN",
+	Arcana = "ARCANA",
+	Eternal = "ETERNAL",
+	Apex = "APEX",
+	Unknown = "UNKNOWN",
+}
+
+local TREASURE_RARITY_DISPLAY = {
+	Common = "COMMON",
+	Rare = "RARE",
+	SuperRare = "SUPER RARE",
+	Mythical = "MYTHICAL",
+	Legendary = "LEGENDARY",
+	NeverSeen = "NEVER SEEN",
+	Arcana = "ARCANA",
+	Eternal = "ETERNAL",
+	Apex = "APEX",
+	Unknown = "UNKNOWN",
+}
+
+local FishIndex = {}
+local TreasureIndex = {}
+
+local function loadFishIndex()
+	table.clear(FishIndex)
+
+	local success, data = pcall(function()
+		return require(fishDataModule)
+	end)
+
+	if not success then
+		warn("[Level1 Hub] Cannot require Fish Index:", data)
+		return
+	end
+
+	if type(data) ~= "table" then
+		warn("[Level1 Hub] Fish Index is not a table.")
+		return
+	end
+
+	for fishName, fishInfo in pairs(data) do
+		if type(fishInfo) == "table" and fishInfo.Rarity then
+			FishIndex[tostring(fishName)] = tostring(fishInfo.Rarity)
+		end
+	end
+end
+
+local function loadTreasureIndex()
+	table.clear(TreasureIndex)
+
+	local success, data = pcall(function()
+		return require(treasureDataModule)
+	end)
+
+	if not success then
+		warn("[Level1 Hub] Cannot require Treasure Index:", data)
+		return
+	end
+
+	if type(data) ~= "table" then
+		warn("[Level1 Hub] Treasure Index is not a table.")
+		return
+	end
+
+	for treasureName, treasureInfo in pairs(data) do
+		if type(treasureInfo) == "table" and treasureInfo.Rarity then
+			TreasureIndex[tostring(treasureName)] = tostring(treasureInfo.Rarity)
+		end
+	end
+end
+
+loadFishIndex()
+loadTreasureIndex()
+
+local function getFishRarity(fishObject)
+	local fishName
+
+	if typeof(fishObject) == "Instance" then
+		fishName = fishObject.Name
+	else
+		fishName = tostring(fishObject)
+	end
+
+	if FishIndex[fishName] then
+		return FishIndex[fishName]
+	end
+
+	if typeof(fishObject) == "Instance" then
+		local rarity = fishObject:GetAttribute("Rarity")
+
+		if rarity then
+			return tostring(rarity)
+		end
+	end
+
+	return "Unknown"
+end
+
+local function getTreasureRarity(treasureObject)
+	local treasureName
+
+	if typeof(treasureObject) == "Instance" then
+		treasureName = treasureObject.Name
+	else
+		treasureName = tostring(treasureObject)
+	end
+
+	if TreasureIndex[treasureName] then
+		return TreasureIndex[treasureName]
+	end
+
+	if typeof(treasureObject) == "Instance" then
+		local rarity = treasureObject:GetAttribute("Rarity")
+
+		if rarity then
+			return tostring(rarity)
+		end
+	end
+
+	return "Unknown"
+end
+
+local function getRarityColor(rarity)
+	return THEME[rarity] or THEME.Unknown
+end
+
+local fishList = {}
+
+for _, fish in ipairs(fishFolder:GetChildren()) do
+	if fish:IsA("Model") or fish:IsA("BasePart") then
+		local rarity = getFishRarity(fish)
+
+		table.insert(fishList, {
+			Object = fish,
+			Name = fish.Name,
+			Rarity = rarity,
+			Order = RARITY_ORDER[rarity] or 999,
+		})
+	end
+end
+
+table.sort(fishList, function(a, b)
+	if a.Order ~= b.Order then
+		return a.Order < b.Order
+	end
+
+	return string.lower(a.Name) < string.lower(b.Name)
+end)
+
+for index, data in ipairs(fishList) do
+	data.Order = index
+end
+
+local treasureList = {}
+
+for _, treasure in ipairs(treasureFolder:GetChildren()) do
+	if treasure:IsA("Model") or treasure:IsA("BasePart") then
+		local rarity = getTreasureRarity(treasure)
+
+		table.insert(treasureList, {
+			Object = treasure,
+			Name = treasure.Name,
+			Rarity = rarity,
+			Order = RARITY_ORDER[rarity] or 999,
+		})
+	end
+end
+
+table.sort(treasureList, function(a, b)
+	if a.Order ~= b.Order then
+		return a.Order < b.Order
+	end
+
+	return string.lower(a.Name) < string.lower(b.Name)
+end)
+
+for index, data in ipairs(treasureList) do
+	data.Order = index
+end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "FishCatcherGui"
@@ -75,1332 +291,1808 @@ gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
 frame.Name = "Main"
-frame.Size = UDim2.new(0, 900, 0, 560)
-frame.Position = UDim2.new(0.5, -450, 0.5, -280)
+frame.Size = UDim2.new(0, 0, 0, 0)
+frame.Position = UDim2.new(0.5, 450, 0.5, -280)
+frame.AnchorPoint = Vector2.new(1, 0)
 frame.BackgroundColor3 = THEME.Background
 frame.BorderSizePixel = 0
 frame.ClipsDescendants = true
 frame.Parent = gui
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 14)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
 
-local mainStroke = Instance.new("UIStroke", frame)
-mainStroke.Color = THEME.Border
-mainStroke.Thickness = 1
+local frameStroke = Instance.new("UIStroke", frame)
+frameStroke.Color = THEME.Border
+frameStroke.Thickness = 1.5
+
+local normalSize = UDim2.new(0, 900, 0, 560)
+local minimizedSize = UDim2.new(0, 300, 0, 68)
+local isMinimized = false
+
+TweenService:Create(
+	frame,
+	TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+	{
+		Size = normalSize
+	}
+):Play()
 
 local header = Instance.new("Frame")
-header.Name = "Header"
-header.Size = UDim2.new(1, 0, 0, 75)
-header.BackgroundColor3 = THEME.Sidebar
-header.BorderSizePixel = 0
+header.Size = UDim2.new(1, 0, 0, 68)
+header.BackgroundTransparency = 1
 header.Parent = frame
 
-local headerTitle = Instance.new("TextLabel")
-headerTitle.Size = UDim2.new(1, -40, 0, 30)
-headerTitle.Position = UDim2.new(0, 20, 0, 12)
-headerTitle.BackgroundTransparency = 1
-headerTitle.Text = "LEVEL1 HUB"
-headerTitle.TextColor3 = THEME.Text
-headerTitle.Font = FONT_BOLD
-headerTitle.TextSize = 20
-headerTitle.TextXAlignment = Enum.TextXAlignment.Left
-headerTitle.Parent = header
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0, 300, 0, 30)
+title.Position = UDim2.new(0, 25, 0, 10)
+title.BackgroundTransparency = 1
+title.Text = "🐟  LEVEL1 HUB"
+title.TextColor3 = THEME.Text
+title.Font = FONT_BOLD
+title.TextSize = 21
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
 
-local headerSub = Instance.new("TextLabel")
-headerSub.Size = UDim2.new(1, -40, 0, 20)
-headerSub.Position = UDim2.new(0, 20, 0, 42)
-headerSub.BackgroundTransparency = 1
-headerSub.Text = "BECOME A DEEP SEA EXPLORER"
-headerSub.TextColor3 = THEME.TextMuted
-headerSub.Font = FONT_REGULAR
-headerSub.TextSize = 10
-headerSub.TextXAlignment = Enum.TextXAlignment.Left
-headerSub.Parent = header
+local gameTitle = Instance.new("TextLabel")
+gameTitle.Size = UDim2.new(0, 400, 0, 18)
+gameTitle.Position = UDim2.new(0, 27, 0, 38)
+gameTitle.BackgroundTransparency = 1
+gameTitle.Text = "BECOME A DEEP SEA EXPLORER"
+gameTitle.TextColor3 = THEME.TextMuted
+gameTitle.Font = FONT_REGULAR
+gameTitle.TextSize = 10
+gameTitle.TextXAlignment = Enum.TextXAlignment.Left
+gameTitle.Parent = header
 
-local tabs = Instance.new("Frame")
-tabs.Name = "Tabs"
-tabs.Size = UDim2.new(0, 300, 0, 40)
-tabs.Position = UDim2.new(1, -320, 0, 18)
-tabs.BackgroundTransparency = 1
-tabs.Parent = header
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.new(0, 34, 0, 34)
+minimize.Position = UDim2.new(1, -88, 0, 16)
+minimize.Text = "—"
+minimize.BackgroundColor3 = THEME.Card
+minimize.TextColor3 = THEME.TextMuted
+minimize.Font = FONT_BOLD
+minimize.TextSize = 18
+minimize.BorderSizePixel = 0
+minimize.AutoButtonColor = false
+minimize.ZIndex = 5
+minimize.Parent = frame
+
+Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 9)
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 34, 0, 34)
+close.Position = UDim2.new(1, -48, 0, 16)
+close.Text = "X"
+close.BackgroundColor3 = THEME.Card
+close.TextColor3 = THEME.TextMuted
+close.Font = FONT_BOLD
+close.TextSize = 13
+close.BorderSizePixel = 0
+close.AutoButtonColor = false
+close.ZIndex = 5
+close.Parent = frame
+
+Instance.new("UICorner", close).CornerRadius = UDim.new(0, 9)
+
+minimize.MouseEnter:Connect(function()
+	TweenService:Create(minimize, TweenInfo.new(0.15), {
+		BackgroundColor3 = THEME.CardHover,
+		TextColor3 = THEME.Text
+	}):Play()
+end)
+
+minimize.MouseLeave:Connect(function()
+	TweenService:Create(minimize, TweenInfo.new(0.15), {
+		BackgroundColor3 = THEME.Card,
+		TextColor3 = THEME.TextMuted
+	}):Play()
+end)
+
+close.MouseEnter:Connect(function()
+	TweenService:Create(close, TweenInfo.new(0.15), {
+		BackgroundColor3 = Color3.fromRGB(220, 65, 75),
+		TextColor3 = Color3.new(1, 1, 1)
+	}):Play()
+end)
+
+close.MouseLeave:Connect(function()
+	TweenService:Create(close, TweenInfo.new(0.15), {
+		BackgroundColor3 = THEME.Card,
+		TextColor3 = THEME.TextMuted
+	}):Play()
+end)
+
+local tabBar = Instance.new("Frame")
+tabBar.Name = "TabBar"
+tabBar.Size = UDim2.new(1, -40, 0, 42)
+tabBar.Position = UDim2.new(0, 20, 0, 68)
+tabBar.BackgroundColor3 = THEME.Panel
+tabBar.BorderSizePixel = 0
+tabBar.Parent = frame
+
+Instance.new("UICorner", tabBar).CornerRadius = UDim.new(0, 10)
+
+local tabStroke = Instance.new("UIStroke", tabBar)
+tabStroke.Color = THEME.Border
+tabStroke.Thickness = 1
 
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.FillDirection = Enum.FillDirection.Horizontal
-tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-tabLayout.Padding = UDim.new(0, 6)
-tabLayout.Parent = tabs
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+tabLayout.Padding = UDim.new(0, 5)
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Parent = tabBar
 
+local tabPadding = Instance.new("UIPadding")
+tabPadding.PaddingLeft = UDim.new(0, 5)
+tabPadding.PaddingRight = UDim.new(0, 5)
+tabPadding.PaddingTop = UDim.new(0, 5)
+tabPadding.PaddingBottom = UDim.new(0, 5)
+tabPadding.Parent = tabBar
+
+local tabs = {}
 local pages = {}
+local currentTab = "Fish"
 
-local function createTab(name)
+local function createTab(name, order)
 	local button = Instance.new("TextButton")
-	button.Name = name .. "Tab"
-	button.Size = UDim2.new(0, 90, 0, 34)
+	button.Name = name
+	button.Size = UDim2.new(0, 120, 1, -10)
 	button.BackgroundColor3 = THEME.Card
+	button.BackgroundTransparency = 1
 	button.BorderSizePixel = 0
-	button.Text = name
+	button.Text = string.upper(name)
 	button.TextColor3 = THEME.TextMuted
 	button.Font = FONT_BOLD
-	button.TextSize = 11
+	button.TextSize = 10
 	button.AutoButtonColor = false
-	button.Parent = tabs
+	button.LayoutOrder = order
+	button.Parent = tabBar
 
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 7)
 
-	local stroke = Instance.new("UIStroke", button)
-	stroke.Color = THEME.Border
-	stroke.Thickness = 1
+	tabs[name] = button
+
+	button.MouseEnter:Connect(function()
+		if currentTab ~= name then
+			TweenService:Create(button, TweenInfo.new(0.12), {
+				BackgroundTransparency = 0,
+				BackgroundColor3 = THEME.CardHover,
+				TextColor3 = THEME.Text
+			}):Play()
+		end
+	end)
+
+	button.MouseLeave:Connect(function()
+		if currentTab ~= name then
+			TweenService:Create(button, TweenInfo.new(0.12), {
+				BackgroundTransparency = 1,
+				TextColor3 = THEME.TextMuted
+			}):Play()
+		end
+	end)
 
 	return button
 end
 
-local fishTab = createTab("Fish")
-local treasureTab = createTab("Treasure")
-local teleportTab = createTab("Teleport")
+createTab("Fish", 1)
+createTab("Treasure", 2)
+createTab("Teleport", 3)
+
+local sidebar = Instance.new("Frame")
+sidebar.Size = UDim2.new(0, 165, 1, -130)
+sidebar.Position = UDim2.new(0, 20, 0, 120)
+sidebar.BackgroundColor3 = THEME.Sidebar
+sidebar.BorderSizePixel = 0
+sidebar.Parent = frame
+
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 12)
+
+local sideStroke = Instance.new("UIStroke", sidebar)
+sideStroke.Color = THEME.Border
+sideStroke.Thickness = 1
+
+local sideTitle = Instance.new("TextLabel")
+sideTitle.Size = UDim2.new(1, -20, 0, 25)
+sideTitle.Position = UDim2.new(0, 10, 0, 12)
+sideTitle.BackgroundTransparency = 1
+sideTitle.Text = "RARITY"
+sideTitle.TextColor3 = THEME.TextMuted
+sideTitle.Font = FONT_BOLD
+sideTitle.TextSize = 11
+sideTitle.TextXAlignment = Enum.TextXAlignment.Left
+sideTitle.Parent = sidebar
+
+local categoryContainer = Instance.new("Frame")
+categoryContainer.Name = "CategoryContainer"
+categoryContainer.Size = UDim2.new(1, -20, 1, -48)
+categoryContainer.Position = UDim2.new(0, 10, 0, 40)
+categoryContainer.BackgroundTransparency = 1
+categoryContainer.Parent = sidebar
+
+local sideLayout = Instance.new("UIListLayout")
+sideLayout.Padding = UDim.new(0, 5)
+sideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+sideLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
+sideLayout.Parent = categoryContainer
 
 local content = Instance.new("Frame")
-content.Name = "Content"
-content.Size = UDim2.new(1, 0, 1, -75)
-content.Position = UDim2.new(0, 0, 0, 75)
+content.Name = "FishPage"
+content.Size = UDim2.new(0, 400, 1, -130)
+content.Position = UDim2.new(0, 200, 0, 120)
 content.BackgroundTransparency = 1
 content.Parent = frame
 
-local function tween(object, properties, duration)
-	return TweenService:Create(
-		object,
-		TweenInfo.new(duration or 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		properties
-	)
+pages.Fish = content
+
+local searchFrame = Instance.new("Frame")
+searchFrame.Size = UDim2.new(1, 0, 0, 42)
+searchFrame.BackgroundColor3 = THEME.Panel
+searchFrame.BorderSizePixel = 0
+searchFrame.Parent = content
+
+Instance.new("UICorner", searchFrame).CornerRadius = UDim.new(0, 10)
+
+local searchStroke = Instance.new("UIStroke", searchFrame)
+searchStroke.Color = THEME.Border
+
+local search = Instance.new("TextBox")
+search.Size = UDim2.new(1, -20, 1, 0)
+search.Position = UDim2.new(0, 10, 0, 0)
+search.Text = ""
+search.PlaceholderText = "Search Fish . . ."
+search.BackgroundTransparency = 1
+search.TextColor3 = THEME.Text
+search.PlaceholderColor3 = THEME.TextMuted
+search.Font = FONT_REGULAR
+search.TextSize = 13
+search.ClearTextOnFocus = false
+search.TextXAlignment = Enum.TextXAlignment.Left
+search.Parent = searchFrame
+
+local list = Instance.new("ScrollingFrame")
+list.Size = UDim2.new(1, 0, 1, -55)
+list.Position = UDim2.new(0, 0, 0, 55)
+list.BackgroundTransparency = 1
+list.BorderSizePixel = 0
+list.ScrollBarThickness = 3
+list.ScrollBarImageColor3 = THEME.Accent
+list.CanvasSize = UDim2.new(0, 0, 0, 0)
+list.Parent = content
+
+local grid = Instance.new("UIGridLayout")
+grid.CellSize = UDim2.new(0, 125, 0, 125)
+grid.CellPadding = UDim2.new(0, 9, 0, 9)
+grid.SortOrder = Enum.SortOrder.LayoutOrder
+grid.Parent = list
+
+local previewPanel = Instance.new("Frame")
+previewPanel.Size = UDim2.new(0, 275, 1, -130)
+previewPanel.Position = UDim2.new(1, -295, 0, 120)
+previewPanel.BackgroundColor3 = THEME.Sidebar
+previewPanel.BorderSizePixel = 0
+previewPanel.Parent = frame
+
+Instance.new("UICorner", previewPanel).CornerRadius = UDim.new(0, 12)
+
+local previewStroke = Instance.new("UIStroke", previewPanel)
+previewStroke.Color = THEME.Border
+previewStroke.Thickness = 1
+
+local previewHeader = Instance.new("TextLabel")
+previewHeader.Size = UDim2.new(1, -25, 0, 20)
+previewHeader.Position = UDim2.new(0, 13, 0, 13)
+previewHeader.BackgroundTransparency = 1
+previewHeader.Text = "SPECIMEN PREVIEW"
+previewHeader.TextColor3 = THEME.TextMuted
+previewHeader.Font = FONT_BOLD
+previewHeader.TextSize = 10
+previewHeader.TextXAlignment = Enum.TextXAlignment.Left
+previewHeader.Parent = previewPanel
+
+local previewTitle = Instance.new("TextLabel")
+previewTitle.Size = UDim2.new(1, -20, 0, 42)
+previewTitle.Position = UDim2.new(0, 10, 0, 38)
+previewTitle.BackgroundTransparency = 1
+previewTitle.Text = "NO FISH SELECTED"
+previewTitle.TextColor3 = THEME.Text
+previewTitle.Font = FONT_BOLD
+previewTitle.TextSize = 15
+previewTitle.TextWrapped = true
+previewTitle.Parent = previewPanel
+
+local previewRarity = Instance.new("TextLabel")
+previewRarity.Size = UDim2.new(1, -20, 0, 22)
+previewRarity.Position = UDim2.new(0, 10, 0, 80)
+previewRarity.BackgroundTransparency = 1
+previewRarity.Text = "SELECT A FISH"
+previewRarity.TextColor3 = THEME.TextMuted
+previewRarity.Font = FONT_BOLD
+previewRarity.TextSize = 10
+previewRarity.Parent = previewPanel
+
+local viewport = Instance.new("ViewportFrame")
+viewport.Size = UDim2.new(1, -35, 0, 285)
+viewport.Position = UDim2.new(0, 17, 0, 108)
+viewport.BackgroundColor3 = Color3.fromRGB(10, 12, 17)
+viewport.BorderSizePixel = 0
+viewport.Ambient = Color3.fromRGB(200, 200, 200)
+viewport.LightColor = Color3.fromRGB(255, 255, 255)
+viewport.LightDirection = Vector3.new(-1, -1, -1)
+viewport.Parent = previewPanel
+
+Instance.new("UICorner", viewport).CornerRadius = UDim.new(0, 12)
+
+local viewportCamera
+local previewWorld
+local previewClone
+local previewBasePivot
+
+local previewRotation = 0
+local previewDragging = false
+local previewLastX = 0
+
+local function getModelBounds(object)
+	if object:IsA("Model") then
+		return object:GetBoundingBox()
+	elseif object:IsA("BasePart") then
+		return object.CFrame, object.Size
+	end
+
+	return nil, nil
 end
 
-local dragging = false
-local dragStart
-local startPosition
+local function centerPreviewObject(object)
+	local cf, size = getModelBounds(object)
 
-header.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPosition = frame.Position
+	if not cf then
+		return nil, nil
 	end
-end)
 
-header.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
+	local center = cf.Position
+
+	if object:IsA("Model") then
+		local pivot = object:GetPivot()
+
+		local newPivot =
+			CFrame.new(pivot.Position - center)
+			* pivot.Rotation
+
+		object:PivotTo(newPivot)
+	elseif object:IsA("BasePart") then
+		local rotation = object.CFrame - object.CFrame.Position
+
+		object.CFrame =
+			CFrame.new(-center)
+			* rotation
 	end
-end)
 
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStart
+	local newCF, newSize = getModelBounds(object)
 
-		frame.Position = UDim2.new(
-			startPosition.X.Scale,
-			startPosition.X.Offset + delta.X,
-			startPosition.Y.Scale,
-			startPosition.Y.Offset + delta.Y
-		)
-	end
-end)
-
-local function setTabStyle(button, active)
-	if active then
-		tween(button, {
-			BackgroundColor3 = THEME.Accent,
-			TextColor3 = Color3.fromRGB(5, 15, 20)
-		}):Play()
-	else
-		tween(button, {
-			BackgroundColor3 = THEME.Card,
-			TextColor3 = THEME.TextMuted
-		}):Play()
-	end
+	return newCF, newSize
 end
 
+local function preparePreviewObject(object)
+	if object:IsA("BasePart") then
+		object.Anchored = true
+		object.CanCollide = false
+		object.CanTouch = false
+		object.CanQuery = false
+		object.CastShadow = true
+	end
 
-local fishPage = Instance.new("Frame")
-fishPage.Name = "FishPage"
-fishPage.Size = UDim2.new(1, 0, 1, 0)
-fishPage.BackgroundTransparency = 1
-fishPage.Visible = true
-fishPage.Parent = content
-
-pages.Fish = fishPage
-
-local fishSidebar = Instance.new("Frame")
-fishSidebar.Name = "Sidebar"
-fishSidebar.Size = UDim2.new(0, 170, 1, -20)
-fishSidebar.Position = UDim2.new(0, 10, 0, 10)
-fishSidebar.BackgroundColor3 = THEME.Sidebar
-fishSidebar.BorderSizePixel = 0
-fishSidebar.Parent = fishPage
-
-Instance.new("UICorner", fishSidebar).CornerRadius = UDim.new(0, 10)
-
-local fishSidebarStroke = Instance.new("UIStroke", fishSidebar)
-fishSidebarStroke.Color = THEME.Border
-fishSidebarStroke.Thickness = 1
-
-local fishSidebarTitle = Instance.new("TextLabel")
-fishSidebarTitle.Size = UDim2.new(1, -24, 0, 30)
-fishSidebarTitle.Position = UDim2.new(0, 12, 0, 12)
-fishSidebarTitle.BackgroundTransparency = 1
-fishSidebarTitle.Text = "FISH"
-fishSidebarTitle.TextColor3 = THEME.Text
-fishSidebarTitle.Font = FONT_BOLD
-fishSidebarTitle.TextSize = 13
-fishSidebarTitle.TextXAlignment = Enum.TextXAlignment.Left
-fishSidebarTitle.Parent = fishSidebar
-
-local fishRarityList = Instance.new("ScrollingFrame")
-fishRarityList.Size = UDim2.new(1, -20, 1, -55)
-fishRarityList.Position = UDim2.new(0, 10, 0, 50)
-fishRarityList.BackgroundTransparency = 1
-fishRarityList.BorderSizePixel = 0
-fishRarityList.ScrollBarThickness = 3
-fishRarityList.ScrollBarImageColor3 = THEME.Accent
-fishRarityList.CanvasSize = UDim2.new(0, 0, 0, 0)
-fishRarityList.Parent = fishSidebar
-
-local fishRarityLayout = Instance.new("UIListLayout")
-fishRarityLayout.Padding = UDim.new(0, 5)
-fishRarityLayout.SortOrder = Enum.SortOrder.LayoutOrder
-fishRarityLayout.Parent = fishRarityList
-
-local fishContent = Instance.new("Frame")
-fishContent.Name = "Content"
-fishContent.Size = UDim2.new(1, -390, 1, -20)
-fishContent.Position = UDim2.new(0, 190, 0, 10)
-fishContent.BackgroundColor3 = THEME.Sidebar
-fishContent.BorderSizePixel = 0
-fishContent.Parent = fishPage
-
-Instance.new("UICorner", fishContent).CornerRadius = UDim.new(0, 10)
-
-local fishContentStroke = Instance.new("UIStroke", fishContent)
-fishContentStroke.Color = THEME.Border
-fishContentStroke.Thickness = 1
-
-local fishSearch = Instance.new("TextBox")
-fishSearch.Size = UDim2.new(1, -24, 0, 38)
-fishSearch.Position = UDim2.new(0, 12, 0, 12)
-fishSearch.BackgroundColor3 = THEME.Card
-fishSearch.BorderSizePixel = 0
-fishSearch.PlaceholderText = "Search fish..."
-fishSearch.PlaceholderColor3 = THEME.TextMuted
-fishSearch.Text = ""
-fishSearch.TextColor3 = THEME.Text
-fishSearch.Font = FONT_REGULAR
-fishSearch.TextSize = 11
-fishSearch.ClearTextOnFocus = false
-fishSearch.Parent = fishContent
-
-Instance.new("UICorner", fishSearch).CornerRadius = UDim.new(0, 8)
-
-local fishSearchStroke = Instance.new("UIStroke", fishSearch)
-fishSearchStroke.Color = THEME.Border
-fishSearchStroke.Thickness = 1
-
-local fishGrid = Instance.new("ScrollingFrame")
-fishGrid.Name = "Grid"
-fishGrid.Size = UDim2.new(1, -24, 1, -62)
-fishGrid.Position = UDim2.new(0, 12, 0, 55)
-fishGrid.BackgroundTransparency = 1
-fishGrid.BorderSizePixel = 0
-fishGrid.ScrollBarThickness = 4
-fishGrid.ScrollBarImageColor3 = THEME.Accent
-fishGrid.CanvasSize = UDim2.new(0, 0, 0, 0)
-fishGrid.Parent = fishContent
-
-local fishGridLayout = Instance.new("UIGridLayout")
-fishGridLayout.CellSize = UDim2.new(0, 135, 0, 125)
-fishGridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
-fishGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-fishGridLayout.Parent = fishGrid
-
-local fishPreviewPanel = Instance.new("Frame")
-fishPreviewPanel.Name = "Preview"
-fishPreviewPanel.Size = UDim2.new(0, 190, 1, -20)
-fishPreviewPanel.Position = UDim2.new(1, -200, 0, 10)
-fishPreviewPanel.BackgroundColor3 = THEME.Sidebar
-fishPreviewPanel.BorderSizePixel = 0
-fishPreviewPanel.Parent = fishPage
-
-Instance.new("UICorner", fishPreviewPanel).CornerRadius = UDim.new(0, 10)
-
-local fishPreviewStroke = Instance.new("UIStroke", fishPreviewPanel)
-fishPreviewStroke.Color = THEME.Border
-fishPreviewStroke.Thickness = 1
-
-local fishPreviewTitle = Instance.new("TextLabel")
-fishPreviewTitle.Size = UDim2.new(1, -20, 0, 30)
-fishPreviewTitle.Position = UDim2.new(0, 10, 0, 10)
-fishPreviewTitle.BackgroundTransparency = 1
-fishPreviewTitle.Text = "PREVIEW"
-fishPreviewTitle.TextColor3 = THEME.Text
-fishPreviewTitle.Font = FONT_BOLD
-fishPreviewTitle.TextSize = 12
-fishPreviewTitle.TextXAlignment = Enum.TextXAlignment.Left
-fishPreviewTitle.Parent = fishPreviewPanel
-
-local fishViewport = Instance.new("ViewportFrame")
-fishViewport.Size = UDim2.new(1, -20, 0, 190)
-fishViewport.Position = UDim2.new(0, 10, 0, 48)
-fishViewport.BackgroundColor3 = THEME.Card
-fishViewport.BorderSizePixel = 0
-fishViewport.Ambient = Color3.fromRGB(200, 200, 200)
-fishViewport.LightColor = Color3.fromRGB(255, 255, 255)
-fishViewport.Parent = fishPreviewPanel
-
-Instance.new("UICorner", fishViewport).CornerRadius = UDim.new(0, 8)
-
-local fishPreviewName = Instance.new("TextLabel")
-fishPreviewName.Size = UDim2.new(1, -20, 0, 35)
-fishPreviewName.Position = UDim2.new(0, 10, 0, 250)
-fishPreviewName.BackgroundTransparency = 1
-fishPreviewName.Text = "Select a fish"
-fishPreviewName.TextColor3 = THEME.Text
-fishPreviewName.Font = FONT_BOLD
-fishPreviewName.TextSize = 12
-fishPreviewName.TextWrapped = true
-fishPreviewName.Parent = fishPreviewPanel
-
-local fishPreviewRarity = Instance.new("TextLabel")
-fishPreviewRarity.Size = UDim2.new(1, -20, 0, 25)
-fishPreviewRarity.Position = UDim2.new(0, 10, 0, 285)
-fishPreviewRarity.BackgroundTransparency = 1
-fishPreviewRarity.Text = ""
-fishPreviewRarity.TextColor3 = THEME.TextMuted
-fishPreviewRarity.Font = FONT_REGULAR
-fishPreviewRarity.TextSize = 10
-fishPreviewRarity.Parent = fishPreviewPanel
-
-local fishAction = Instance.new("TextButton")
-fishAction.Size = UDim2.new(1, -20, 0, 42)
-fishAction.Position = UDim2.new(0, 10, 1, -52)
-fishAction.BackgroundColor3 = THEME.Accent
-fishAction.BorderSizePixel = 0
-fishAction.Text = "ADD TO INVENTORY"
-fishAction.TextColor3 = Color3.fromRGB(5, 15, 20)
-fishAction.Font = FONT_BOLD
-fishAction.TextSize = 10
-fishAction.AutoButtonColor = false
-fishAction.Parent = fishPreviewPanel
-
-Instance.new("UICorner", fishAction).CornerRadius = UDim.new(0, 8)
-
-local selectedFish = nil
-local selectedFishButton = nil
-local selectedFishRarity = "All"
-
-local function getValue(data, key, fallback)
-	if type(data) == "table" then
-		if data[key] ~= nil then
-			return data[key]
+	for _, descendant in ipairs(object:GetDescendants()) do
+		if descendant:IsA("BasePart") then
+			descendant.Anchored = true
+			descendant.CanCollide = false
+			descendant.CanTouch = false
+			descendant.CanQuery = false
+			descendant.CastShadow = true
+		elseif descendant:IsA("Script")
+			or descendant:IsA("LocalScript")
+			or descendant:IsA("ModuleScript") then
+			descendant:Destroy()
 		end
 	end
-
-	return fallback
 end
 
-local function getFishName(data, fallback)
-	if type(data) == "string" then
-		return data
-	end
-
-	if type(data) == "table" then
-		return data.Name or data.name or data.DisplayName or data.displayName or fallback
-	end
-
-	return fallback
-end
-
-local function getFishRarity(data)
-	if type(data) == "table" then
-		return data.Rarity or data.rarity or data.RarityName or data.rarityName or "Common"
-	end
-
-	return "Common"
-end
-
-local function clearViewport()
-	for _, child in ipairs(fishViewport:GetChildren()) do
-		child:Destroy()
-	end
-end
-
-local function showFishPreview(fishName)
-	selectedFish = fishName
-
-	clearViewport()
-
-	fishPreviewName.Text = fishName
-
-	local fishInfo = FishData[fishName]
-	local rarity = getFishRarity(fishInfo)
-
-	fishPreviewRarity.Text = tostring(rarity)
-
-	local asset = FishAssets:FindFirstChild(fishName)
-
-	if not asset then
+local function setPreviewRotation()
+	if not previewClone or not previewBasePivot then
 		return
 	end
 
-	local clone = asset:Clone()
+	local rotation =
+		CFrame.Angles(
+			0,
+			math.rad(previewRotation),
+			0
+		)
 
-	if clone:IsA("Model") then
-		clone.Parent = fishViewport
+	local pivot =
+		rotation
+		* previewBasePivot
 
-		local camera = Instance.new("Camera")
-		camera.Parent = fishViewport
-		fishViewport.CurrentCamera = camera
-
-		local primary = clone.PrimaryPart
-
-		if not primary then
-			primary = clone:FindFirstChildWhichIsA("BasePart", true)
-		end
-
-		if primary then
-			clone.PrimaryPart = primary
-			clone:PivotTo(CFrame.new(0, 0, 0))
-
-			local size = clone:GetExtentsSize()
-			local distance = math.max(size.X, size.Y, size.Z) * 2.2
-
-			camera.CFrame = CFrame.new(
-				0,
-				size.Y * 0.15,
-				distance
-			) * CFrame.Angles(
-				math.rad(-5),
-				math.rad(180),
-				0
-			)
-		end
-	elseif clone:IsA("BasePart") then
-		clone.Parent = fishViewport
-
-		local camera = Instance.new("Camera")
-		camera.Parent = fishViewport
-		fishViewport.CurrentCamera = camera
-
-		local size = clone.Size
-		local distance = math.max(size.X, size.Y, size.Z) * 3
-
-		camera.CFrame = CFrame.new(0, 0, distance)
+	if previewClone:IsA("Model") then
+		previewClone:PivotTo(pivot)
+	elseif previewClone:IsA("BasePart") then
+		previewClone.CFrame = pivot
 	end
 end
 
-local function createFishButton(fishName, rarity, order)
+local function updatePreview(fishName, rarity)
+	viewport:ClearAllChildren()
+
+	previewWorld = nil
+	previewClone = nil
+	previewBasePivot = nil
+	viewportCamera = nil
+	previewRotation = 0
+	previewDragging = false
+
+	local targetFish = fishFolder:FindFirstChild(fishName)
+
+	if not targetFish then
+		previewTitle.Text = "NO FISH SELECTED"
+		previewRarity.Text = "SELECT A FISH"
+		previewRarity.TextColor3 = THEME.TextMuted
+		return
+	end
+
+	previewWorld = Instance.new("WorldModel")
+	previewWorld.Name = "PreviewWorld"
+	previewWorld.Parent = viewport
+
+	local success, clone = pcall(function()
+		return targetFish:Clone()
+	end)
+
+	if not success or not clone then
+		previewTitle.Text = "PREVIEW ERROR"
+		previewRarity.Text = "CLONE FAILED"
+		previewRarity.TextColor3 = Color3.fromRGB(255, 85, 85)
+		return
+	end
+
+	clone.Parent = previewWorld
+	previewClone = clone
+
+	preparePreviewObject(clone)
+
+	local centeredCF, centeredSize = centerPreviewObject(clone)
+
+	if not centeredCF or not centeredSize then
+		previewTitle.Text = "PREVIEW ERROR"
+		previewRarity.Text = "INVALID MODEL"
+		previewRarity.TextColor3 = Color3.fromRGB(255, 85, 85)
+		return
+	end
+
+	local maxSize = math.max(
+		centeredSize.X,
+		centeredSize.Y,
+		centeredSize.Z
+	)
+
+	if maxSize <= 0 or maxSize ~= maxSize then
+		maxSize = 4
+	end
+
+	local camera = Instance.new("Camera")
+	camera.Name = "PreviewCamera"
+	camera.FieldOfView = 35
+	camera.Parent = viewport
+
+	viewport.CurrentCamera = camera
+	viewportCamera = camera
+
+	local cameraDistance =
+		math.max(maxSize * 2.25, 4)
+
+	camera.CFrame = CFrame.lookAt(
+		Vector3.new(
+			0,
+			maxSize * 0.04,
+			cameraDistance
+		),
+		Vector3.new(0, 0, 0)
+	)
+
+	local sideRotation = CFrame.Angles(0, math.rad(90), 0)
+
+	if clone:IsA("Model") then
+		previewBasePivot = clone:GetPivot() * sideRotation
+	elseif clone:IsA("BasePart") then
+		previewBasePivot = clone.CFrame * sideRotation
+	end
+
+	setPreviewRotation()
+
+	local rarityColor = getRarityColor(rarity)
+
+	previewTitle.Text = string.upper(fishName)
+
+	previewRarity.Text =
+		RARITY_DISPLAY[rarity]
+		or string.upper(rarity)
+
+	previewRarity.TextColor3 = rarityColor
+end
+
+viewport.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		previewDragging = true
+		previewLastX = input.Position.X
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if not previewDragging then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		local currentX = input.Position.X
+		local delta = currentX - previewLastX
+
+		previewLastX = currentX
+		previewRotation += delta * 0.6
+
+		if previewRotation > 360 then
+			previewRotation -= 360
+		elseif previewRotation < -360 then
+			previewRotation += 360
+		end
+
+		setPreviewRotation()
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		previewDragging = false
+	end
+end)
+
+local fishButtons = {}
+
+local selectedFish = nil
+local selectedButton = nil
+local selectedStroke = nil
+local selectedRarity = nil
+
+local catchButton
+local catchButtonStroke
+
+local function createFishCard(data)
+	local fish = data.Object
+	local name = data.Name
+	local rarity = data.Rarity
+	local rarityColor = getRarityColor(rarity)
+
 	local button = Instance.new("TextButton")
-	button.Name = fishName:gsub("%s+", "")
-	button.Size = UDim2.new(0, 135, 0, 125)
-	button.BackgroundColor3 = THEME.Card
-	button.BorderSizePixel = 0
+	button.Name = name
 	button.Text = ""
 	button.AutoButtonColor = false
-	button.LayoutOrder = order
-	button.Parent = fishGrid
+	button.BackgroundColor3 = THEME.Card
+	button.BorderSizePixel = 0
+	button.LayoutOrder = data.Order
+	button.Parent = list
 
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
 
 	local stroke = Instance.new("UIStroke", button)
 	stroke.Color = THEME.Border
 	stroke.Thickness = 1
 
-	local viewport = Instance.new("ViewportFrame")
-	viewport.Size = UDim2.new(1, -10, 0, 78)
-	viewport.Position = UDim2.new(0, 5, 0, 5)
-	viewport.BackgroundColor3 = THEME.Panel
-	viewport.BorderSizePixel = 0
-	viewport.Ambient = Color3.fromRGB(200, 200, 200)
-	viewport.LightColor = Color3.fromRGB(255, 255, 255)
-	viewport.Parent = button
+	local dot = Instance.new("Frame")
+	dot.Size = UDim2.new(0, 7, 0, 7)
+	dot.Position = UDim2.new(0, 9, 0, 9)
+	dot.BackgroundColor3 = rarityColor
+	dot.BorderSizePixel = 0
+	dot.Parent = button
 
-	Instance.new("UICorner", viewport).CornerRadius = UDim.new(0, 6)
+	Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
 
-	local asset = FishAssets:FindFirstChild(fishName)
+	local rarityLabel = Instance.new("TextLabel")
+	rarityLabel.Size = UDim2.new(1, -25, 0, 16)
+	rarityLabel.Position = UDim2.new(0, 21, 0, 5)
+	rarityLabel.BackgroundTransparency = 1
+	rarityLabel.Text = RARITY_DISPLAY[rarity] or string.upper(rarity)
+	rarityLabel.TextColor3 = rarityColor
+	rarityLabel.Font = FONT_BOLD
+	rarityLabel.TextSize = 7
+	rarityLabel.TextXAlignment = Enum.TextXAlignment.Left
+	rarityLabel.Parent = button
 
-	if asset then
-		local clone = asset:Clone()
+	local miniViewport = Instance.new("ViewportFrame")
+	miniViewport.Size = UDim2.new(1, -10, 0, 67)
+	miniViewport.Position = UDim2.new(0, 5, 0, 25)
+	miniViewport.BackgroundTransparency = 1
+	miniViewport.BorderSizePixel = 0
+	miniViewport.Ambient = Color3.fromRGB(200, 200, 200)
+	miniViewport.LightColor = Color3.fromRGB(255, 255, 255)
+	miniViewport.LightDirection = Vector3.new(-1, -1, -1)
+	miniViewport.Parent = button
 
-		if clone:IsA("Model") then
-			clone.Parent = viewport
+	Instance.new("UICorner", miniViewport).CornerRadius = UDim.new(0, 6)
 
-			local camera = Instance.new("Camera")
-			camera.Parent = viewport
-			viewport.CurrentCamera = camera
+	local miniWorld = Instance.new("WorldModel")
+	miniWorld.Parent = miniViewport
 
-			local primary = clone.PrimaryPart
+	local cloneSuccess, miniClone = pcall(function()
+		return fish:Clone()
+	end)
 
-			if not primary then
-				primary = clone:FindFirstChildWhichIsA("BasePart", true)
+	if cloneSuccess and miniClone then
+		miniClone.Parent = miniWorld
+
+		preparePreviewObject(miniClone)
+
+		local miniCF, miniSize = centerPreviewObject(miniClone)
+
+		if miniCF and miniSize then
+			local miniRotation = CFrame.Angles(0, math.rad(180), 0)
+
+			if miniClone:IsA("Model") then
+				miniClone:PivotTo(miniRotation * miniClone:GetPivot())
+			elseif miniClone:IsA("BasePart") then
+				miniClone.CFrame = miniRotation * miniClone.CFrame
 			end
 
-			if primary then
-				clone.PrimaryPart = primary
-				clone:PivotTo(CFrame.new(0, 0, 0))
+			local miniCamera = Instance.new("Camera")
+			miniCamera.FieldOfView = 38
+			miniCamera.Parent = miniViewport
+			miniViewport.CurrentCamera = miniCamera
 
-				local size = clone:GetExtentsSize()
-				local distance = math.max(size.X, size.Y, size.Z) * 2
+			local miniMax =
+				math.max(
+					miniSize.X,
+					miniSize.Y,
+					miniSize.Z
+				)
 
-				camera.CFrame = CFrame.new(0, 0, distance)
-			end
-		elseif clone:IsA("BasePart") then
-			clone.Parent = viewport
+			local distance =
+				math.max(
+					miniMax * 2.4,
+					2.5
+				)
 
-			local camera = Instance.new("Camera")
-			camera.Parent = viewport
-			viewport.CurrentCamera = camera
-
-			local distance = math.max(
-				clone.Size.X,
-				clone.Size.Y,
-				clone.Size.Z
-			) * 3
-
-			camera.CFrame = CFrame.new(0, 0, distance)
+			miniCamera.CFrame = CFrame.lookAt(
+				Vector3.new(0, miniMax * 0.03, distance),
+				Vector3.new(0, 0, 0)
+			)
 		end
 	end
 
-	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, -10, 0, 22)
-	nameLabel.Position = UDim2.new(0, 5, 0, 86)
-	nameLabel.BackgroundTransparency = 1
-	nameLabel.Text = fishName
-	nameLabel.TextColor3 = THEME.Text
-	nameLabel.Font = FONT_BOLD
-	nameLabel.TextSize = 9
-	nameLabel.TextWrapped = true
-	nameLabel.Parent = button
+	local fishName = Instance.new("TextLabel")
+	fishName.Size = UDim2.new(1, -12, 0, 25)
+	fishName.Position = UDim2.new(0, 6, 1, -31)
+	fishName.BackgroundTransparency = 1
+	fishName.Text = name
+	fishName.TextColor3 = THEME.Text
+	fishName.Font = FONT_REGULAR
+	fishName.TextSize = 10
+	fishName.TextTruncate = Enum.TextTruncate.AtEnd
+	fishName.Parent = button
 
-	local rarityLabel = Instance.new("TextLabel")
-	rarityLabel.Size = UDim2.new(1, -10, 0, 14)
-	rarityLabel.Position = UDim2.new(0, 5, 1, -17)
-	rarityLabel.BackgroundTransparency = 1
-	rarityLabel.Text = tostring(rarity)
-	rarityLabel.TextColor3 = THEME.TextMuted
-	rarityLabel.Font = FONT_REGULAR
-	rarityLabel.TextSize = 8
-	rarityLabel.Parent = button
+	local rarityBar = Instance.new("Frame")
+	rarityBar.Size = UDim2.new(1, 0, 0, 3)
+	rarityBar.Position = UDim2.new(0, 0, 1, -3)
+	rarityBar.BackgroundColor3 = rarityColor
+	rarityBar.BorderSizePixel = 0
+	rarityBar.Parent = button
+
+	Instance.new("UICorner", rarityBar).CornerRadius = UDim.new(0, 2)
 
 	button.MouseEnter:Connect(function()
-		tween(button, {
-			BackgroundColor3 = THEME.CardHover
-		}):Play()
+		if selectedButton ~= button then
+			TweenService:Create(button, TweenInfo.new(0.15), {
+				BackgroundColor3 = THEME.CardHover
+			}):Play()
+		end
 
-		tween(stroke, {
-			Color = THEME.Accent
+		TweenService:Create(stroke, TweenInfo.new(0.15), {
+			Color = rarityColor
 		}):Play()
 	end)
 
 	button.MouseLeave:Connect(function()
-		if selectedFishButton ~= button then
-			tween(button, {
+		if selectedButton ~= button then
+			TweenService:Create(button, TweenInfo.new(0.15), {
 				BackgroundColor3 = THEME.Card
 			}):Play()
 
-			tween(stroke, {
+			TweenService:Create(stroke, TweenInfo.new(0.15), {
 				Color = THEME.Border
 			}):Play()
 		end
 	end)
 
 	button.MouseButton1Click:Connect(function()
-		if selectedFishButton then
-			tween(selectedFishButton, {
-				BackgroundColor3 = THEME.Card
-			}):Play()
+		if selectedButton and selectedButton ~= button then
+			selectedButton.BackgroundColor3 = THEME.Card
+
+			if selectedStroke then
+				selectedStroke.Color = THEME.Border
+			end
 		end
 
-		selectedFishButton = button
+		selectedButton = button
+		selectedStroke = stroke
+		selectedFish = name
+		selectedRarity = rarity
 
-		tween(button, {
-			BackgroundColor3 = THEME.CardHover
-		}):Play()
+		button.BackgroundColor3 = THEME.CardSelected
+		stroke.Color = rarityColor
 
-		showFishPreview(fishName)
+		catchButton.BackgroundColor3 = THEME.Accent
+		catchButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+		catchButtonStroke.Color = THEME.Accent
+
+		updatePreview(name, rarity)
 	end)
+
+	fishButtons[name] = {
+		Button = button,
+		Rarity = rarity,
+		Data = data
+	}
 end
 
-local fishRarities = {}
-
-for fishName, data in pairs(FishData) do
-	local rarity = getFishRarity(data)
-
-	if not fishRarities[rarity] then
-		fishRarities[rarity] = true
-	end
+for _, data in ipairs(fishList) do
+	createFishCard(data)
 end
 
-local rarityNames = {"All"}
-
-for rarity in pairs(fishRarities) do
-	table.insert(rarityNames, tostring(rarity))
+local function updateCanvas()
+	list.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		grid.AbsoluteContentSize.Y + 10
+	)
 end
 
-table.sort(rarityNames, function(a, b)
-	if a == "All" then
-		return true
+grid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
+
+task.defer(updateCanvas)
+
+local categories = {
+	"Common",
+	"Rare",
+	"SuperRare",
+	"Mythical",
+	"Legendary",
+	"NeverSeen",
+	"Arcana",
+	"Eternal",
+	"Apex",
+}
+
+local currentCategory = nil
+local categoryButtons = {}
+
+local function filterFish()
+	local searchText = string.lower(search.Text or "")
+
+	if currentCategory == nil then
+		grid.SortOrder = Enum.SortOrder.LayoutOrder
+	else
+		grid.SortOrder = Enum.SortOrder.Name
 	end
 
-	if b == "All" then
-		return false
+	for name, item in pairs(fishButtons) do
+		local searchMatch =
+			searchText == ""
+			or string.find(
+				string.lower(name),
+				searchText,
+				1,
+				true
+			)
+
+		local categoryMatch =
+			currentCategory == nil
+			or item.Rarity == currentCategory
+
+		item.Button.Visible =
+			searchMatch and categoryMatch
 	end
 
-	return a < b
-end)
+	task.defer(updateCanvas)
+end
 
-local function refreshFish()
-	for _, child in ipairs(fishGrid:GetChildren()) do
-		if child:IsA("TextButton") then
-			child:Destroy()
+local function updateCategoryVisuals()
+	for category, button in pairs(categoryButtons) do
+		local isSelected = category == currentCategory
+
+		if isSelected then
+			button.BackgroundTransparency = 0
+			button.BackgroundColor3 = THEME.CardSelected
+			button.TextColor3 = getRarityColor(category)
+		else
+			button.BackgroundTransparency = 1
+			button.BackgroundColor3 = THEME.Card
+			button.TextColor3 = THEME.TextMuted
+		end
+
+		local accent = button:FindFirstChild("SelectedAccent")
+
+		if accent then
+			accent.Visible = true
+			accent.BackgroundColor3 = getRarityColor(category)
 		end
 	end
-
-	local searchText = string.lower(fishSearch.Text)
-	local order = 0
-
-	for fishName, data in pairs(FishData) do
-		local name = getFishName(data, tostring(fishName))
-		local rarity = tostring(getFishRarity(data))
-
-		local rarityMatch = selectedFishRarity == "All"
-			or rarity == selectedFishRarity
-
-		local searchMatch = searchText == ""
-			or string.find(string.lower(name), searchText, 1, true)
-
-		if rarityMatch and searchMatch then
-			order += 1
-			createFishButton(name, rarity, order)
-		end
-	end
-
-	task.defer(function()
-		fishGrid.CanvasSize = UDim2.new(
-			0,
-			0,
-			0,
-			fishGridLayout.AbsoluteContentSize.Y + 15
-		)
-	end)
 end
 
-for index, rarity in ipairs(rarityNames) do
-	local button = Instance.new("TextButton")
-	button.Name = rarity:gsub("%s+", "")
-	button.Size = UDim2.new(1, -4, 0, 34)
-	button.BackgroundColor3 = rarity == "All" and THEME.Accent or THEME.Card
-	button.BorderSizePixel = 0
-	button.Text = rarity
-	button.TextColor3 = rarity == "All"
-		and Color3.fromRGB(5, 15, 20)
-		or THEME.TextMuted
-	button.Font = FONT_BOLD
-	button.TextSize = 10
-	button.AutoButtonColor = false
-	button.LayoutOrder = index
-	button.Parent = fishRarityList
+for index, category in ipairs(categories) do
+	local categoryButton = Instance.new("TextButton")
+	categoryButton.Name = category
+	categoryButton.Size = UDim2.new(1, 0, 0, 36)
+	categoryButton.BackgroundColor3 = THEME.Card
+	categoryButton.BackgroundTransparency = 1
+	categoryButton.BorderSizePixel = 0
+	categoryButton.Text = RARITY_DISPLAY[category] or string.upper(category)
+	categoryButton.TextColor3 = THEME.TextMuted
+	categoryButton.Font = FONT_BOLD
+	categoryButton.TextSize = 9
+	categoryButton.LayoutOrder = index
+	categoryButton.AutoButtonColor = false
+	categoryButton.Parent = categoryContainer
 
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 7)
+	Instance.new("UICorner", categoryButton).CornerRadius = UDim.new(0, 8)
 
-	local stroke = Instance.new("UIStroke", button)
-	stroke.Color = THEME.Border
-	stroke.Thickness = 1
+	categoryButtons[category] = categoryButton
 
-	button.MouseEnter:Connect(function()
-		if selectedFishRarity ~= rarity then
-			tween(button, {
+	local accent = Instance.new("Frame")
+	accent.Name = "SelectedAccent"
+	accent.Size = UDim2.new(0, 3, 1, -10)
+	accent.Position = UDim2.new(0, 5, 0, 5)
+	accent.BackgroundColor3 = getRarityColor(category)
+	accent.BorderSizePixel = 0
+	accent.Visible = true
+	accent.Parent = categoryButton
+
+	Instance.new("UICorner", accent).CornerRadius = UDim.new(0, 2)
+
+	categoryButton.MouseEnter:Connect(function()
+		if currentCategory ~= category then
+			TweenService:Create(categoryButton, TweenInfo.new(0.12), {
+				BackgroundTransparency = 0,
 				BackgroundColor3 = THEME.CardHover
 			}):Play()
 		end
 	end)
 
-	button.MouseLeave:Connect(function()
-		if selectedFishRarity ~= rarity then
-			tween(button, {
-				BackgroundColor3 = THEME.Card
+	categoryButton.MouseLeave:Connect(function()
+		if currentCategory ~= category then
+			TweenService:Create(categoryButton, TweenInfo.new(0.12), {
+				BackgroundTransparency = 1
 			}):Play()
 		end
 	end)
 
-	button.MouseButton1Click:Connect(function()
-		selectedFishRarity = rarity
-
-		for _, child in ipairs(fishRarityList:GetChildren()) do
-			if child:IsA("TextButton") then
-				local active = child.Text == selectedFishRarity
-
-				tween(child, {
-					BackgroundColor3 = active
-						and THEME.Accent
-						or THEME.Card,
-					TextColor3 = active
-						and Color3.fromRGB(5, 15, 20)
-						or THEME.TextMuted
-				}):Play()
-			end
+	categoryButton.MouseButton1Click:Connect(function()
+		if currentCategory == category then
+			currentCategory = nil
+		else
+			currentCategory = category
 		end
 
-		refreshFish()
+		updateCategoryVisuals()
+		filterFish()
 	end)
 end
 
-fishSearch:GetPropertyChangedSignal("Text"):Connect(function()
-	refreshFish()
+updateCategoryVisuals()
+
+search:GetPropertyChangedSignal("Text"):Connect(function()
+	filterFish()
 end)
 
-fishGridLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	fishGrid.CanvasSize = UDim2.new(
-		0,
-		0,
-		0,
-		fishGridLayout.AbsoluteContentSize.Y + 15
+catchButton = Instance.new("TextButton")
+catchButton.Size = UDim2.new(1, -35, 0, 45)
+catchButton.Position = UDim2.new(0, 17, 1, -60)
+catchButton.Text = "CATCH FISH"
+catchButton.BackgroundColor3 = THEME.Card
+catchButton.TextColor3 = THEME.TextMuted
+catchButton.Font = FONT_BOLD
+catchButton.TextSize = 12
+catchButton.BorderSizePixel = 0
+catchButton.AutoButtonColor = false
+catchButton.Parent = previewPanel
+
+Instance.new("UICorner", catchButton).CornerRadius = UDim.new(0, 9)
+
+catchButtonStroke = Instance.new("UIStroke", catchButton)
+catchButtonStroke.Color = THEME.Border
+catchButtonStroke.Thickness = 1
+
+catchButton.MouseEnter:Connect(function()
+	if selectedFish then
+		TweenService:Create(catchButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = THEME.Accent
+		}):Play()
+
+		TweenService:Create(catchButtonStroke, TweenInfo.new(0.15), {
+			Color = THEME.Accent
+		}):Play()
+
+		catchButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+	end
+end)
+
+catchButton.MouseLeave:Connect(function()
+	if selectedFish then
+		TweenService:Create(catchButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = THEME.AccentDark
+		}):Play()
+
+		catchButton.TextColor3 = Color3.new(1, 1, 1)
+	else
+		TweenService:Create(catchButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = THEME.Card
+		}):Play()
+
+		catchButton.TextColor3 = THEME.TextMuted
+	end
+end)
+
+catchButton.MouseButton1Down:Connect(function()
+	if selectedFish then
+		catchButton:TweenSize(
+			UDim2.new(1, -39, 0, 41),
+			Enum.EasingDirection.Out,
+			Enum.EasingStyle.Quad,
+			0.08,
+			true
+		)
+	end
+end)
+
+catchButton.MouseButton1Up:Connect(function()
+	catchButton:TweenSize(
+		UDim2.new(1, -35, 0, 45),
+		Enum.EasingDirection.Out,
+		Enum.EasingStyle.Quad,
+		0.08,
+		true
 	)
 end)
 
-fishRarityLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	fishRarityList.CanvasSize = UDim2.new(
-		0,
-		0,
-		0,
-		fishRarityLayout.AbsoluteContentSize.Y + 15
-	)
-end)
-
-fishAction.MouseEnter:Connect(function()
-	tween(fishAction, {
-		BackgroundColor3 = THEME.CardHover
-	}):Play()
-end)
-
-fishAction.MouseLeave:Connect(function()
-	tween(fishAction, {
-		BackgroundColor3 = THEME.Accent
-	}):Play()
-end)
-
-fishAction.MouseButton1Click:Connect(function()
+catchButton.MouseButton1Click:Connect(function()
 	if not selectedFish then
+		warn("Pilih ikan dulu!")
 		return
 	end
 
-	local success = pcall(function()
-		FishRemote:InvokeServer(selectedFish)
+	local fishName = selectedFish
+
+	catchButton.Text = "CATCHING..."
+	catchButton.Active = false
+
+	local success, result = pcall(function()
+		return addToInventoryRF:InvokeServer(
+			fishName,
+			"Catch"
+		)
 	end)
 
 	if success then
-		tween(fishAction, {
-			BackgroundColor3 = Color3.fromRGB(74, 222, 128)
-		}):Play()
+		catchButton.Text = "✓ CAUGHT!"
+		catchButton.BackgroundColor3 = Color3.fromRGB(50, 190, 110)
+		catchButton.TextColor3 = Color3.new(1, 1, 1)
 
-		task.delay(0.25, function()
-			if fishAction and fishAction.Parent then
-				tween(fishAction, {
-					BackgroundColor3 = THEME.Accent
-				}):Play()
+		task.delay(0.8, function()
+			if catchButton.Parent then
+				catchButton.Text = "CATCH FISH"
+				catchButton.BackgroundColor3 = THEME.Accent
+				catchButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				catchButton.Active = true
+			end
+		end)
+	else
+		warn("[Level1 Hub] AddToInventory failed:", result)
+
+		catchButton.Text = "FAILED"
+		catchButton.BackgroundColor3 = Color3.fromRGB(210, 65, 75)
+		catchButton.TextColor3 = Color3.new(1, 1, 1)
+
+		task.delay(1, function()
+			if catchButton.Parent then
+				catchButton.Text = "CATCH FISH"
+				catchButton.BackgroundColor3 = THEME.Accent
+				catchButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				catchButton.Active = true
 			end
 		end)
 	end
 end)
 
-refreshFish()
-
-
-
-local treasurePage = Instance.new("Frame")
-treasurePage.Name = "TreasurePage"
-treasurePage.Size = UDim2.new(1, 0, 1, 0)
-treasurePage.BackgroundTransparency = 1
-treasurePage.Visible = false
-treasurePage.Parent = content
-
-pages.Treasure = treasurePage
+catchButton.BackgroundColor3 = THEME.Card
+catchButton.TextColor3 = THEME.TextMuted
+catchButton.Active = true
 
 local treasureSidebar = Instance.new("Frame")
-treasureSidebar.Name = "Sidebar"
-treasureSidebar.Size = UDim2.new(0, 170, 1, -20)
-treasureSidebar.Position = UDim2.new(0, 10, 0, 10)
+treasureSidebar.Size = UDim2.new(0, 165, 1, -130)
+treasureSidebar.Position = UDim2.new(0, 20, 0, 120)
 treasureSidebar.BackgroundColor3 = THEME.Sidebar
 treasureSidebar.BorderSizePixel = 0
-treasureSidebar.Parent = treasurePage
+treasureSidebar.Visible = false
+treasureSidebar.Parent = frame
 
-Instance.new("UICorner", treasureSidebar).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", treasureSidebar).CornerRadius = UDim.new(0, 12)
 
-local treasureSidebarStroke = Instance.new("UIStroke", treasureSidebar)
-treasureSidebarStroke.Color = THEME.Border
-treasureSidebarStroke.Thickness = 1
+local treasureSideStroke = Instance.new("UIStroke", treasureSidebar)
+treasureSideStroke.Color = THEME.Border
+treasureSideStroke.Thickness = 1
 
-local treasureSidebarTitle = Instance.new("TextLabel")
-treasureSidebarTitle.Size = UDim2.new(1, -24, 0, 30)
-treasureSidebarTitle.Position = UDim2.new(0, 12, 0, 12)
-treasureSidebarTitle.BackgroundTransparency = 1
-treasureSidebarTitle.Text = "TREASURE"
-treasureSidebarTitle.TextColor3 = THEME.Text
-treasureSidebarTitle.Font = FONT_BOLD
-treasureSidebarTitle.TextSize = 13
-treasureSidebarTitle.TextXAlignment = Enum.TextXAlignment.Left
-treasureSidebarTitle.Parent = treasureSidebar
+local treasureSideTitle = Instance.new("TextLabel")
+treasureSideTitle.Size = UDim2.new(1, -20, 0, 25)
+treasureSideTitle.Position = UDim2.new(0, 10, 0, 12)
+treasureSideTitle.BackgroundTransparency = 1
+treasureSideTitle.Text = "RARITY"
+treasureSideTitle.TextColor3 = THEME.TextMuted
+treasureSideTitle.Font = FONT_BOLD
+treasureSideTitle.TextSize = 11
+treasureSideTitle.TextXAlignment = Enum.TextXAlignment.Left
+treasureSideTitle.Parent = treasureSidebar
 
-local treasureRarityList = Instance.new("ScrollingFrame")
-treasureRarityList.Size = UDim2.new(1, -20, 1, -55)
-treasureRarityList.Position = UDim2.new(0, 10, 0, 50)
-treasureRarityList.BackgroundTransparency = 1
-treasureRarityList.BorderSizePixel = 0
-treasureRarityList.ScrollBarThickness = 3
-treasureRarityList.ScrollBarImageColor3 = THEME.Accent
-treasureRarityList.CanvasSize = UDim2.new(0, 0, 0, 0)
-treasureRarityList.Parent = treasureSidebar
+local treasureCategoryContainer = Instance.new("Frame")
+treasureCategoryContainer.Name = "CategoryContainer"
+treasureCategoryContainer.Size = UDim2.new(1, -20, 1, -48)
+treasureCategoryContainer.Position = UDim2.new(0, 10, 0, 40)
+treasureCategoryContainer.BackgroundTransparency = 1
+treasureCategoryContainer.Parent = treasureSidebar
 
-local treasureRarityLayout = Instance.new("UIListLayout")
-treasureRarityLayout.Padding = UDim.new(0, 5)
-treasureRarityLayout.SortOrder = Enum.SortOrder.LayoutOrder
-treasureRarityLayout.Parent = treasureRarityList
+local treasureSideLayout = Instance.new("UIListLayout")
+treasureSideLayout.Padding = UDim.new(0, 5)
+treasureSideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+treasureSideLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+treasureSideLayout.SortOrder = Enum.SortOrder.LayoutOrder
+treasureSideLayout.Parent = treasureCategoryContainer
 
 local treasureContent = Instance.new("Frame")
-treasureContent.Name = "Content"
-treasureContent.Size = UDim2.new(1, -390, 1, -20)
-treasureContent.Position = UDim2.new(0, 190, 0, 10)
-treasureContent.BackgroundColor3 = THEME.Sidebar
-treasureContent.BorderSizePixel = 0
-treasureContent.Parent = treasurePage
+treasureContent.Name = "TreasurePage"
+treasureContent.Size = UDim2.new(0, 400, 1, -130)
+treasureContent.Position = UDim2.new(0, 200, 0, 120)
+treasureContent.BackgroundTransparency = 1
+treasureContent.Visible = false
+treasureContent.Parent = frame
 
-Instance.new("UICorner", treasureContent).CornerRadius = UDim.new(0, 10)
+pages.Treasure = treasureContent
 
-local treasureContentStroke = Instance.new("UIStroke", treasureContent)
-treasureContentStroke.Color = THEME.Border
-treasureContentStroke.Thickness = 1
+local treasureSearchFrame = Instance.new("Frame")
+treasureSearchFrame.Size = UDim2.new(1, 0, 0, 42)
+treasureSearchFrame.Position = UDim2.new(0, 0, 0, 0)
+treasureSearchFrame.BackgroundColor3 = THEME.Panel
+treasureSearchFrame.BorderSizePixel = 0
+treasureSearchFrame.Parent = treasureContent
 
-local treasureSearch = Instance.new("TextBox")
-treasureSearch.Size = UDim2.new(1, -24, 0, 38)
-treasureSearch.Position = UDim2.new(0, 12, 0, 12)
-treasureSearch.BackgroundColor3 = THEME.Card
-treasureSearch.BorderSizePixel = 0
-treasureSearch.PlaceholderText = "Search treasure..."
-treasureSearch.PlaceholderColor3 = THEME.TextMuted
-treasureSearch.Text = ""
-treasureSearch.TextColor3 = THEME.Text
-treasureSearch.Font = FONT_REGULAR
-treasureSearch.TextSize = 11
-treasureSearch.ClearTextOnFocus = false
-treasureSearch.Parent = treasureContent
+Instance.new("UICorner", treasureSearchFrame).CornerRadius = UDim.new(0, 10)
 
-Instance.new("UICorner", treasureSearch).CornerRadius = UDim.new(0, 8)
-
-local treasureSearchStroke = Instance.new("UIStroke", treasureSearch)
+local treasureSearchStroke = Instance.new("UIStroke", treasureSearchFrame)
 treasureSearchStroke.Color = THEME.Border
 treasureSearchStroke.Thickness = 1
 
-local treasureGrid = Instance.new("ScrollingFrame")
-treasureGrid.Name = "Grid"
-treasureGrid.Size = UDim2.new(1, -24, 1, -62)
-treasureGrid.Position = UDim2.new(0, 12, 0, 55)
-treasureGrid.BackgroundTransparency = 1
-treasureGrid.BorderSizePixel = 0
-treasureGrid.ScrollBarThickness = 4
-treasureGrid.ScrollBarImageColor3 = THEME.Accent
-treasureGrid.CanvasSize = UDim2.new(0, 0, 0, 0)
-treasureGrid.Parent = treasureContent
+local treasureSearch = Instance.new("TextBox")
+treasureSearch.Size = UDim2.new(1, -20, 1, 0)
+treasureSearch.Position = UDim2.new(0, 10, 0, 0)
+treasureSearch.Text = ""
+treasureSearch.PlaceholderText = "Search Treasure . . ."
+treasureSearch.BackgroundTransparency = 1
+treasureSearch.TextColor3 = THEME.Text
+treasureSearch.PlaceholderColor3 = THEME.TextMuted
+treasureSearch.Font = FONT_REGULAR
+treasureSearch.TextSize = 13
+treasureSearch.ClearTextOnFocus = false
+treasureSearch.TextXAlignment = Enum.TextXAlignment.Left
+treasureSearch.Parent = treasureSearchFrame
 
-local treasureGridLayout = Instance.new("UIGridLayout")
-treasureGridLayout.CellSize = UDim2.new(0, 135, 0, 125)
-treasureGridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
-treasureGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-treasureGridLayout.Parent = treasureGrid
+local treasureListFrame = Instance.new("ScrollingFrame")
+treasureListFrame.Size = UDim2.new(1, 0, 1, -55)
+treasureListFrame.Position = UDim2.new(0, 0, 0, 55)
+treasureListFrame.BackgroundTransparency = 1
+treasureListFrame.BorderSizePixel = 0
+treasureListFrame.ScrollBarThickness = 3
+treasureListFrame.ScrollBarImageColor3 = THEME.Accent
+treasureListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+treasureListFrame.Parent = treasureContent
+
+local treasureGrid = Instance.new("UIGridLayout")
+treasureGrid.CellSize = UDim2.new(0, 125, 0, 125)
+treasureGrid.CellPadding = UDim2.new(0, 9, 0, 9)
+treasureGrid.SortOrder = Enum.SortOrder.LayoutOrder
+treasureGrid.Parent = treasureListFrame
 
 local treasurePreviewPanel = Instance.new("Frame")
-treasurePreviewPanel.Name = "Preview"
-treasurePreviewPanel.Size = UDim2.new(0, 190, 1, -20)
-treasurePreviewPanel.Position = UDim2.new(1, -200, 0, 10)
+treasurePreviewPanel.Size = UDim2.new(0, 275, 1, -130)
+treasurePreviewPanel.Position = UDim2.new(1, -295, 0, 120)
 treasurePreviewPanel.BackgroundColor3 = THEME.Sidebar
 treasurePreviewPanel.BorderSizePixel = 0
-treasurePreviewPanel.Parent = treasurePage
+treasurePreviewPanel.Visible = false
+treasurePreviewPanel.Parent = frame
 
-Instance.new("UICorner", treasurePreviewPanel).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", treasurePreviewPanel).CornerRadius = UDim.new(0, 12)
 
 local treasurePreviewStroke = Instance.new("UIStroke", treasurePreviewPanel)
 treasurePreviewStroke.Color = THEME.Border
 treasurePreviewStroke.Thickness = 1
 
+local treasurePreviewHeader = Instance.new("TextLabel")
+treasurePreviewHeader.Size = UDim2.new(1, -25, 0, 20)
+treasurePreviewHeader.Position = UDim2.new(0, 13, 0, 13)
+treasurePreviewHeader.BackgroundTransparency = 1
+treasurePreviewHeader.Text = "TREASURE PREVIEW"
+treasurePreviewHeader.TextColor3 = THEME.TextMuted
+treasurePreviewHeader.Font = FONT_BOLD
+treasurePreviewHeader.TextSize = 10
+treasurePreviewHeader.TextXAlignment = Enum.TextXAlignment.Left
+treasurePreviewHeader.Parent = treasurePreviewPanel
+
 local treasurePreviewTitle = Instance.new("TextLabel")
-treasurePreviewTitle.Size = UDim2.new(1, -20, 0, 30)
-treasurePreviewTitle.Position = UDim2.new(0, 10, 0, 10)
+treasurePreviewTitle.Size = UDim2.new(1, -20, 0, 42)
+treasurePreviewTitle.Position = UDim2.new(0, 10, 0, 38)
 treasurePreviewTitle.BackgroundTransparency = 1
-treasurePreviewTitle.Text = "PREVIEW"
+treasurePreviewTitle.Text = "NO TREASURE SELECTED"
 treasurePreviewTitle.TextColor3 = THEME.Text
 treasurePreviewTitle.Font = FONT_BOLD
-treasurePreviewTitle.TextSize = 12
-treasurePreviewTitle.TextXAlignment = Enum.TextXAlignment.Left
+treasurePreviewTitle.TextSize = 15
+treasurePreviewTitle.TextWrapped = true
 treasurePreviewTitle.Parent = treasurePreviewPanel
 
+local treasurePreviewInfo = Instance.new("TextLabel")
+treasurePreviewInfo.Size = UDim2.new(1, -20, 0, 22)
+treasurePreviewInfo.Position = UDim2.new(0, 10, 0, 80)
+treasurePreviewInfo.BackgroundTransparency = 1
+treasurePreviewInfo.Text = "SELECT A TREASURE"
+treasurePreviewInfo.TextColor3 = THEME.TextMuted
+treasurePreviewInfo.Font = FONT_BOLD
+treasurePreviewInfo.TextSize = 10
+treasurePreviewInfo.Parent = treasurePreviewPanel
+
 local treasureViewport = Instance.new("ViewportFrame")
-treasureViewport.Size = UDim2.new(1, -20, 0, 190)
-treasureViewport.Position = UDim2.new(0, 10, 0, 48)
-treasureViewport.BackgroundColor3 = THEME.Card
+treasureViewport.Size = UDim2.new(1, -35, 0, 285)
+treasureViewport.Position = UDim2.new(0, 17, 0, 108)
+treasureViewport.BackgroundColor3 = Color3.fromRGB(10, 12, 17)
 treasureViewport.BorderSizePixel = 0
 treasureViewport.Ambient = Color3.fromRGB(200, 200, 200)
 treasureViewport.LightColor = Color3.fromRGB(255, 255, 255)
+treasureViewport.LightDirection = Vector3.new(-1, -1, -1)
 treasureViewport.Parent = treasurePreviewPanel
 
-Instance.new("UICorner", treasureViewport).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", treasureViewport).CornerRadius = UDim.new(0, 12)
 
-local treasurePreviewName = Instance.new("TextLabel")
-treasurePreviewName.Size = UDim2.new(1, -20, 0, 35)
-treasurePreviewName.Position = UDim2.new(0, 10, 0, 250)
-treasurePreviewName.BackgroundTransparency = 1
-treasurePreviewName.Text = "Select a treasure"
-treasurePreviewName.TextColor3 = THEME.Text
-treasurePreviewName.Font = FONT_BOLD
-treasurePreviewName.TextSize = 12
-treasurePreviewName.TextWrapped = true
-treasurePreviewName.Parent = treasurePreviewPanel
+local treasureViewportCamera
+local treasurePreviewWorld
+local treasurePreviewClone
+local treasurePreviewBasePivot
+local treasurePreviewRotation = 0
+local treasurePreviewDragging = false
+local treasurePreviewLastX = 0
 
-local treasurePreviewRarity = Instance.new("TextLabel")
-treasurePreviewRarity.Size = UDim2.new(1, -20, 0, 25)
-treasurePreviewRarity.Position = UDim2.new(0, 10, 0, 285)
-treasurePreviewRarity.BackgroundTransparency = 1
-treasurePreviewRarity.Text = ""
-treasurePreviewRarity.TextColor3 = THEME.TextMuted
-treasurePreviewRarity.Font = FONT_REGULAR
-treasurePreviewRarity.TextSize = 10
-treasurePreviewRarity.Parent = treasurePreviewPanel
-
-local treasureAction = Instance.new("TextButton")
-treasureAction.Size = UDim2.new(1, -20, 0, 42)
-treasureAction.Position = UDim2.new(0, 10, 1, -52)
-treasureAction.BackgroundColor3 = THEME.Accent
-treasureAction.BorderSizePixel = 0
-treasureAction.Text = "ADD TO INVENTORY"
-treasureAction.TextColor3 = Color3.fromRGB(5, 15, 20)
-treasureAction.Font = FONT_BOLD
-treasureAction.TextSize = 10
-treasureAction.AutoButtonColor = false
-treasureAction.Parent = treasurePreviewPanel
-
-Instance.new("UICorner", treasureAction).CornerRadius = UDim.new(0, 8)
-
-local selectedTreasure = nil
-local selectedTreasureButton = nil
-local selectedTreasureRarity = "All"
-
-local function getTreasureName(data, fallback)
-	if type(data) == "string" then
-		return data
-	end
-
-	if type(data) == "table" then
-		return data.Name
-			or data.name
-			or data.DisplayName
-			or data.displayName
-			or fallback
-	end
-
-	return fallback
-end
-
-local function getTreasureRarity(data)
-	if type(data) == "table" then
-		return data.Rarity
-			or data.rarity
-			or data.RarityName
-			or data.rarityName
-			or "Common"
-	end
-
-	return "Common"
-end
-
-local function clearTreasureViewport()
-	for _, child in ipairs(treasureViewport:GetChildren()) do
-		child:Destroy()
-	end
-end
-
-local function showTreasurePreview(treasureName)
-	selectedTreasure = treasureName
-
-	clearTreasureViewport()
-
-	treasurePreviewName.Text = treasureName
-
-	local treasureInfo = TreasureData[treasureName]
-	local rarity = getTreasureRarity(treasureInfo)
-
-	treasurePreviewRarity.Text = tostring(rarity)
-
-	local asset = TreasureAssets:FindFirstChild(treasureName)
-
-	if not asset then
+local function setTreasurePreviewRotation()
+	if not treasurePreviewClone or not treasurePreviewBasePivot then
 		return
 	end
 
-	local clone = asset:Clone()
+	local rotation = CFrame.Angles(
+		0,
+		math.rad(treasurePreviewRotation),
+		0
+	)
 
-	if clone:IsA("Model") then
-		clone.Parent = treasureViewport
+	local pivot = rotation * treasurePreviewBasePivot
 
-		local camera = Instance.new("Camera")
-		camera.Parent = treasureViewport
-		treasureViewport.CurrentCamera = camera
-
-		local primary = clone.PrimaryPart
-
-		if not primary then
-			primary = clone:FindFirstChildWhichIsA("BasePart", true)
-		end
-
-		if primary then
-			clone.PrimaryPart = primary
-			clone:PivotTo(CFrame.new(0, 0, 0))
-
-			local size = clone:GetExtentsSize()
-			local distance = math.max(size.X, size.Y, size.Z) * 2.2
-
-			camera.CFrame = CFrame.new(
-				0,
-				size.Y * 0.15,
-				distance
-			)
-		end
-	elseif clone:IsA("BasePart") then
-		clone.Parent = treasureViewport
-
-		local camera = Instance.new("Camera")
-		camera.Parent = treasureViewport
-		treasureViewport.CurrentCamera = camera
-
-		local distance = math.max(
-			clone.Size.X,
-			clone.Size.Y,
-			clone.Size.Z
-		) * 3
-
-		camera.CFrame = CFrame.new(0, 0, distance)
+	if treasurePreviewClone:IsA("Model") then
+		treasurePreviewClone:PivotTo(pivot)
+	elseif treasurePreviewClone:IsA("BasePart") then
+		treasurePreviewClone.CFrame = pivot
 	end
 end
 
-local function createTreasureButton(treasureName, rarity, order)
+local function updateTreasurePreview(treasureName, rarity)
+	treasureViewport:ClearAllChildren()
+
+	treasurePreviewWorld = nil
+	treasurePreviewClone = nil
+	treasurePreviewBasePivot = nil
+	treasureViewportCamera = nil
+	treasurePreviewRotation = 0
+	treasurePreviewDragging = false
+
+	local targetTreasure = treasureFolder:FindFirstChild(treasureName)
+
+	if not targetTreasure then
+		treasurePreviewTitle.Text = "NO TREASURE SELECTED"
+		treasurePreviewInfo.Text = "SELECT A TREASURE"
+		treasurePreviewInfo.TextColor3 = THEME.TextMuted
+		return
+	end
+
+	treasurePreviewWorld = Instance.new("WorldModel")
+	treasurePreviewWorld.Name = "TreasurePreviewWorld"
+	treasurePreviewWorld.Parent = treasureViewport
+
+	local success, clone = pcall(function()
+		return targetTreasure:Clone()
+	end)
+
+	if not success or not clone then
+		treasurePreviewTitle.Text = "PREVIEW ERROR"
+		treasurePreviewInfo.Text = "CLONE FAILED"
+		treasurePreviewInfo.TextColor3 = Color3.fromRGB(255, 85, 85)
+		return
+	end
+
+	clone.Parent = treasurePreviewWorld
+	treasurePreviewClone = clone
+
+	preparePreviewObject(clone)
+
+	local centeredCF, centeredSize = centerPreviewObject(clone)
+
+	if not centeredCF or not centeredSize then
+		treasurePreviewTitle.Text = "PREVIEW ERROR"
+		treasurePreviewInfo.Text = "INVALID MODEL"
+		treasurePreviewInfo.TextColor3 = Color3.fromRGB(255, 85, 85)
+		return
+	end
+
+	local maxSize = math.max(
+		centeredSize.X,
+		centeredSize.Y,
+		centeredSize.Z
+	)
+
+	if maxSize <= 0 or maxSize ~= maxSize then
+		maxSize = 4
+	end
+
+	local camera = Instance.new("Camera")
+	camera.Name = "TreasurePreviewCamera"
+	camera.FieldOfView = 35
+	camera.Parent = treasureViewport
+
+	treasureViewport.CurrentCamera = camera
+	treasureViewportCamera = camera
+
+	local cameraDistance = math.max(maxSize * 2.25, 4)
+
+	camera.CFrame = CFrame.lookAt(
+		Vector3.new(
+			0,
+			maxSize * 0.04,
+			cameraDistance
+		),
+		Vector3.new(0, 0, 0)
+	)
+
+	local sideRotation = CFrame.Angles(0, math.rad(90), 0)
+
+	if clone:IsA("Model") then
+		treasurePreviewBasePivot = clone:GetPivot() * sideRotation
+	elseif clone:IsA("BasePart") then
+		treasurePreviewBasePivot = clone.CFrame * sideRotation
+	end
+
+	setTreasurePreviewRotation()
+
+	local treasureRarity = rarity or getTreasureRarity(treasureName)
+	local rarityColor = getRarityColor(treasureRarity)
+
+	treasurePreviewTitle.Text = string.upper(treasureName)
+	treasurePreviewInfo.Text =
+		TREASURE_RARITY_DISPLAY[treasureRarity]
+		or string.upper(treasureRarity)
+	treasurePreviewInfo.TextColor3 = rarityColor
+end
+
+treasureViewport.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		treasurePreviewDragging = true
+		treasurePreviewLastX = input.Position.X
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if not treasurePreviewDragging then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		local currentX = input.Position.X
+		local delta = currentX - treasurePreviewLastX
+
+		treasurePreviewLastX = currentX
+		treasurePreviewRotation += delta * 0.6
+
+		if treasurePreviewRotation > 360 then
+			treasurePreviewRotation -= 360
+		elseif treasurePreviewRotation < -360 then
+			treasurePreviewRotation += 360
+		end
+
+		setTreasurePreviewRotation()
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		treasurePreviewDragging = false
+	end
+end)
+
+local selectedTreasure = nil
+local selectedTreasureButton = nil
+local selectedTreasureStroke = nil
+local selectedTreasureRarity = nil
+
+local collectTreasureButton
+local collectTreasureButtonStroke
+
+local treasureButtons = {}
+
+local function createTreasureCard(data)
+	local treasure = data.Object
+	local name = data.Name
+	local rarity = data.Rarity
+	local rarityColor = getRarityColor(rarity)
+
 	local button = Instance.new("TextButton")
-	button.Name = treasureName:gsub("%s+", "")
-	button.Size = UDim2.new(0, 135, 0, 125)
-	button.BackgroundColor3 = THEME.Card
-	button.BorderSizePixel = 0
+	button.Name = name
 	button.Text = ""
 	button.AutoButtonColor = false
-	button.LayoutOrder = order
-	button.Parent = treasureGrid
+	button.BackgroundColor3 = THEME.Card
+	button.BorderSizePixel = 0
+	button.LayoutOrder = data.Order
+	button:SetAttribute("Rarity", rarity)
+	button.Parent = treasureListFrame
 
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
 
 	local stroke = Instance.new("UIStroke", button)
 	stroke.Color = THEME.Border
 	stroke.Thickness = 1
 
-	local viewport = Instance.new("ViewportFrame")
-	viewport.Size = UDim2.new(1, -10, 0, 78)
-	viewport.Position = UDim2.new(0, 5, 0, 5)
-	viewport.BackgroundColor3 = THEME.Panel
-	viewport.BorderSizePixel = 0
-	viewport.Ambient = Color3.fromRGB(200, 200, 200)
-	viewport.LightColor = Color3.fromRGB(255, 255, 255)
-	viewport.Parent = button
+	local dot = Instance.new("Frame")
+	dot.Size = UDim2.new(0, 7, 0, 7)
+	dot.Position = UDim2.new(0, 9, 0, 9)
+	dot.BackgroundColor3 = rarityColor
+	dot.BorderSizePixel = 0
+	dot.Parent = button
 
-	Instance.new("UICorner", viewport).CornerRadius = UDim.new(0, 6)
+	Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
 
-	local asset = TreasureAssets:FindFirstChild(treasureName)
+	local treasureLabel = Instance.new("TextLabel")
+	treasureLabel.Size = UDim2.new(1, -25, 0, 16)
+	treasureLabel.Position = UDim2.new(0, 21, 0, 5)
+	treasureLabel.BackgroundTransparency = 1
+	treasureLabel.Text = TREASURE_RARITY_DISPLAY[rarity] or string.upper(rarity)
+	treasureLabel.TextColor3 = rarityColor
+	treasureLabel.Font = FONT_BOLD
+	treasureLabel.TextSize = 7
+	treasureLabel.TextXAlignment = Enum.TextXAlignment.Left
+	treasureLabel.Parent = button
 
-	if asset then
-		local clone = asset:Clone()
+	local miniViewport = Instance.new("ViewportFrame")
+	miniViewport.Size = UDim2.new(1, -10, 0, 67)
+	miniViewport.Position = UDim2.new(0, 5, 0, 25)
+	miniViewport.BackgroundTransparency = 1
+	miniViewport.BorderSizePixel = 0
+	miniViewport.Ambient = Color3.fromRGB(200, 200, 200)
+	miniViewport.LightColor = Color3.fromRGB(255, 255, 255)
+	miniViewport.LightDirection = Vector3.new(-1, -1, -1)
+	miniViewport.Parent = button
 
-		if clone:IsA("Model") then
-			clone.Parent = viewport
+	Instance.new("UICorner", miniViewport).CornerRadius = UDim.new(0, 6)
 
-			local camera = Instance.new("Camera")
-			camera.Parent = viewport
-			viewport.CurrentCamera = camera
+	local miniWorld = Instance.new("WorldModel")
+	miniWorld.Parent = miniViewport
 
-			local primary = clone.PrimaryPart
+	local cloneSuccess, miniClone = pcall(function()
+		return treasure:Clone()
+	end)
 
-			if not primary then
-				primary = clone:FindFirstChildWhichIsA("BasePart", true)
+	if cloneSuccess and miniClone then
+		miniClone.Parent = miniWorld
+
+		preparePreviewObject(miniClone)
+
+		local miniCF, miniSize = centerPreviewObject(miniClone)
+
+		if miniCF and miniSize then
+			local miniRotation = CFrame.Angles(0, math.rad(180), 0)
+
+			if miniClone:IsA("Model") then
+				miniClone:PivotTo(miniRotation * miniClone:GetPivot())
+			elseif miniClone:IsA("BasePart") then
+				miniClone.CFrame = miniRotation * miniClone.CFrame
 			end
 
-			if primary then
-				clone.PrimaryPart = primary
-				clone:PivotTo(CFrame.new(0, 0, 0))
+			local miniCamera = Instance.new("Camera")
+			miniCamera.FieldOfView = 38
+			miniCamera.Parent = miniViewport
+			miniViewport.CurrentCamera = miniCamera
 
-				local size = clone:GetExtentsSize()
-				local distance = math.max(size.X, size.Y, size.Z) * 2
-
-				camera.CFrame = CFrame.new(0, 0, distance)
-			end
-		elseif clone:IsA("BasePart") then
-			clone.Parent = viewport
-
-			local camera = Instance.new("Camera")
-			camera.Parent = viewport
-			viewport.CurrentCamera = camera
+			local miniMax = math.max(
+				miniSize.X,
+				miniSize.Y,
+				miniSize.Z
+			)
 
 			local distance = math.max(
-				clone.Size.X,
-				clone.Size.Y,
-				clone.Size.Z
-			) * 3
+				miniMax * 2.4,
+				2.5
+			)
 
-			camera.CFrame = CFrame.new(0, 0, distance)
+			miniCamera.CFrame = CFrame.lookAt(
+				Vector3.new(
+					0,
+					miniMax * 0.03,
+					distance
+				),
+				Vector3.new(0, 0, 0)
+			)
 		end
 	end
 
-	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, -10, 0, 22)
-	nameLabel.Position = UDim2.new(0, 5, 0, 86)
-	nameLabel.BackgroundTransparency = 1
-	nameLabel.Text = treasureName
-	nameLabel.TextColor3 = THEME.Text
-	nameLabel.Font = FONT_BOLD
-	nameLabel.TextSize = 9
-	nameLabel.TextWrapped = true
-	nameLabel.Parent = button
+	local treasureNameLabel = Instance.new("TextLabel")
+	treasureNameLabel.Size = UDim2.new(1, -12, 0, 25)
+	treasureNameLabel.Position = UDim2.new(0, 6, 1, -31)
+	treasureNameLabel.BackgroundTransparency = 1
+	treasureNameLabel.Text = name
+	treasureNameLabel.TextColor3 = THEME.Text
+	treasureNameLabel.Font = FONT_REGULAR
+	treasureNameLabel.TextSize = 10
+	treasureNameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	treasureNameLabel.Parent = button
 
-	local rarityLabel = Instance.new("TextLabel")
-	rarityLabel.Size = UDim2.new(1, -10, 0, 14)
-	rarityLabel.Position = UDim2.new(0, 5, 1, -17)
-	rarityLabel.BackgroundTransparency = 1
-	rarityLabel.Text = tostring(rarity)
-	rarityLabel.TextColor3 = THEME.TextMuted
-	rarityLabel.Font = FONT_REGULAR
-	rarityLabel.TextSize = 8
-	rarityLabel.Parent = button
+	local accentBar = Instance.new("Frame")
+	accentBar.Size = UDim2.new(1, 0, 0, 3)
+	accentBar.Position = UDim2.new(0, 0, 1, -3)
+	accentBar.BackgroundColor3 = rarityColor
+	accentBar.BorderSizePixel = 0
+	accentBar.Parent = button
+
+	Instance.new("UICorner", accentBar).CornerRadius = UDim.new(0, 2)
 
 	button.MouseEnter:Connect(function()
-		tween(button, {
-			BackgroundColor3 = THEME.CardHover
-		}):Play()
+		if selectedTreasureButton ~= button then
+			TweenService:Create(button, TweenInfo.new(0.15), {
+				BackgroundColor3 = THEME.CardHover
+			}):Play()
+		end
 
-		tween(stroke, {
-			Color = THEME.Accent
+		TweenService:Create(stroke, TweenInfo.new(0.15), {
+			Color = rarityColor
 		}):Play()
 	end)
 
 	button.MouseLeave:Connect(function()
 		if selectedTreasureButton ~= button then
-			tween(button, {
+			TweenService:Create(button, TweenInfo.new(0.15), {
 				BackgroundColor3 = THEME.Card
 			}):Play()
 
-			tween(stroke, {
+			TweenService:Create(stroke, TweenInfo.new(0.15), {
 				Color = THEME.Border
 			}):Play()
 		end
 	end)
 
 	button.MouseButton1Click:Connect(function()
-		if selectedTreasureButton then
-			tween(selectedTreasureButton, {
-				BackgroundColor3 = THEME.Card
-			}):Play()
+		if selectedTreasureButton and selectedTreasureButton ~= button then
+			selectedTreasureButton.BackgroundColor3 = THEME.Card
+
+			if selectedTreasureStroke then
+				selectedTreasureStroke.Color = THEME.Border
+			end
 		end
 
 		selectedTreasureButton = button
+		selectedTreasureStroke = stroke
+		selectedTreasure = name
+		selectedTreasureRarity = rarity
 
-		tween(button, {
-			BackgroundColor3 = THEME.CardHover
-		}):Play()
+		button.BackgroundColor3 = THEME.CardSelected
+		stroke.Color = rarityColor
 
-		showTreasurePreview(treasureName)
+		collectTreasureButton.BackgroundColor3 = THEME.Accent
+		collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+		collectTreasureButtonStroke.Color = THEME.Accent
+
+		updateTreasurePreview(name, rarity)
 	end)
+
+	treasureButtons[name] = {
+		Button = button,
+		Rarity = rarity,
+		Data = data
+	}
 end
 
-local treasureRarities = {}
-
-for treasureName, data in pairs(TreasureData) do
-	local rarity = getTreasureRarity(data)
-
-	if not treasureRarities[rarity] then
-		treasureRarities[rarity] = true
-	end
+for _, data in ipairs(treasureList) do
+	createTreasureCard(data)
 end
 
-local treasureRarityNames = {"All"}
-
-for rarity in pairs(treasureRarities) do
-	table.insert(treasureRarityNames, tostring(rarity))
+local function updateTreasureCanvas()
+	treasureListFrame.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		treasureGrid.AbsoluteContentSize.Y + 10
+	)
 end
 
-table.sort(treasureRarityNames, function(a, b)
-	if a == "All" then
-		return true
+treasureGrid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateTreasureCanvas)
+
+task.defer(updateTreasureCanvas)
+
+local treasureCategories = {
+	"Common",
+	"Rare",
+	"SuperRare",
+	"Mythical",
+	"Legendary",
+}
+
+local currentTreasureCategory = nil
+local treasureCategoryButtons = {}
+
+local function filterTreasure()
+	local searchText = string.lower(treasureSearch.Text or "")
+
+	if currentTreasureCategory == nil then
+		treasureGrid.SortOrder = Enum.SortOrder.LayoutOrder
+	else
+		treasureGrid.SortOrder = Enum.SortOrder.Name
 	end
 
-	if b == "All" then
-		return false
+	for name, item in pairs(treasureButtons) do
+		local searchMatch =
+			searchText == ""
+			or string.find(
+				string.lower(name),
+				searchText,
+				1,
+				true
+			)
+
+		local categoryMatch =
+			currentTreasureCategory == nil
+			or item.Rarity == currentTreasureCategory
+
+		item.Button.Visible =
+			searchMatch and categoryMatch
 	end
 
-	return a < b
-end)
+	task.defer(updateTreasureCanvas)
+end
 
-local function refreshTreasure()
-	for _, child in ipairs(treasureGrid:GetChildren()) do
-		if child:IsA("TextButton") then
-			child:Destroy()
+local function updateTreasureCategoryVisuals()
+	for category, button in pairs(treasureCategoryButtons) do
+		local isSelected = category == currentTreasureCategory
+
+		if isSelected then
+			button.BackgroundTransparency = 0
+			button.BackgroundColor3 = THEME.CardSelected
+			button.TextColor3 = getRarityColor(category)
+		else
+			button.BackgroundTransparency = 1
+			button.BackgroundColor3 = THEME.Card
+			button.TextColor3 = THEME.TextMuted
+		end
+
+		local accent = button:FindFirstChild("SelectedAccent")
+
+		if accent then
+			accent.Visible = true
+			accent.BackgroundColor3 = getRarityColor(category)
 		end
 	end
-
-	local searchText = string.lower(treasureSearch.Text)
-	local order = 0
-
-	for treasureName, data in pairs(TreasureData) do
-		local name = getTreasureName(data, tostring(treasureName))
-		local rarity = tostring(getTreasureRarity(data))
-
-		local rarityMatch = selectedTreasureRarity == "All"
-			or rarity == selectedTreasureRarity
-
-		local searchMatch = searchText == ""
-			or string.find(string.lower(name), searchText, 1, true)
-
-		if rarityMatch and searchMatch then
-			order += 1
-			createTreasureButton(name, rarity, order)
-		end
-	end
-
-	task.defer(function()
-		treasureGrid.CanvasSize = UDim2.new(
-			0,
-			0,
-			0,
-			treasureGridLayout.AbsoluteContentSize.Y + 15
-		)
-	end)
 end
 
-for index, rarity in ipairs(treasureRarityNames) do
-	local button = Instance.new("TextButton")
-	button.Name = rarity:gsub("%s+", "")
-	button.Size = UDim2.new(1, -4, 0, 34)
-	button.BackgroundColor3 = rarity == "All" and THEME.Accent or THEME.Card
-	button.BorderSizePixel = 0
-	button.Text = rarity
-	button.TextColor3 = rarity == "All"
-		and Color3.fromRGB(5, 15, 20)
-		or THEME.TextMuted
-	button.Font = FONT_BOLD
-	button.TextSize = 10
-	button.AutoButtonColor = false
-	button.LayoutOrder = index
-	button.Parent = treasureRarityList
+for index, category in ipairs(treasureCategories) do
+	local categoryButton = Instance.new("TextButton")
+	categoryButton.Name = category
+	categoryButton.Size = UDim2.new(1, 0, 0, 36)
+	categoryButton.BackgroundColor3 = THEME.Card
+	categoryButton.BackgroundTransparency = 1
+	categoryButton.BorderSizePixel = 0
+	categoryButton.Text = TREASURE_RARITY_DISPLAY[category] or string.upper(category)
+	categoryButton.TextColor3 = THEME.TextMuted
+	categoryButton.Font = FONT_BOLD
+	categoryButton.TextSize = 9
+	categoryButton.LayoutOrder = index
+	categoryButton.AutoButtonColor = false
+	categoryButton.Parent = treasureCategoryContainer
 
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 7)
+	Instance.new("UICorner", categoryButton).CornerRadius = UDim.new(0, 8)
 
-	local stroke = Instance.new("UIStroke", button)
-	stroke.Color = THEME.Border
-	stroke.Thickness = 1
+	treasureCategoryButtons[category] = categoryButton
 
-	button.MouseEnter:Connect(function()
-		if selectedTreasureRarity ~= rarity then
-			tween(button, {
+	local accent = Instance.new("Frame")
+	accent.Name = "SelectedAccent"
+	accent.Size = UDim2.new(0, 3, 1, -10)
+	accent.Position = UDim2.new(0, 5, 0, 5)
+	accent.BackgroundColor3 = getRarityColor(category)
+	accent.BorderSizePixel = 0
+	accent.Visible = true
+	accent.Parent = categoryButton
+
+	Instance.new("UICorner", accent).CornerRadius = UDim.new(0, 2)
+
+	categoryButton.MouseEnter:Connect(function()
+		if currentTreasureCategory ~= category then
+			TweenService:Create(categoryButton, TweenInfo.new(0.12), {
+				BackgroundTransparency = 0,
 				BackgroundColor3 = THEME.CardHover
 			}):Play()
 		end
 	end)
 
-	button.MouseLeave:Connect(function()
-		if selectedTreasureRarity ~= rarity then
-			tween(button, {
-				BackgroundColor3 = THEME.Card
+	categoryButton.MouseLeave:Connect(function()
+		if currentTreasureCategory ~= category then
+			TweenService:Create(categoryButton, TweenInfo.new(0.12), {
+				BackgroundTransparency = 1
 			}):Play()
 		end
 	end)
 
-	button.MouseButton1Click:Connect(function()
-		selectedTreasureRarity = rarity
-
-		for _, child in ipairs(treasureRarityList:GetChildren()) do
-			if child:IsA("TextButton") then
-				local active = child.Text == selectedTreasureRarity
-
-				tween(child, {
-					BackgroundColor3 = active
-						and THEME.Accent
-						or THEME.Card,
-					TextColor3 = active
-						and Color3.fromRGB(5, 15, 20)
-						or THEME.TextMuted
-				}):Play()
-			end
+	categoryButton.MouseButton1Click:Connect(function()
+		if currentTreasureCategory == category then
+			currentTreasureCategory = nil
+		else
+			currentTreasureCategory = category
 		end
 
-		refreshTreasure()
+		updateTreasureCategoryVisuals()
+		filterTreasure()
 	end)
 end
 
+updateTreasureCategoryVisuals()
+
 treasureSearch:GetPropertyChangedSignal("Text"):Connect(function()
-	refreshTreasure()
+	filterTreasure()
 end)
 
-treasureGridLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	treasureGrid.CanvasSize = UDim2.new(
-		0,
-		0,
-		0,
-		treasureGridLayout.AbsoluteContentSize.Y + 15
+collectTreasureButton = Instance.new("TextButton")
+collectTreasureButton.Size = UDim2.new(1, -35, 0, 45)
+collectTreasureButton.Position = UDim2.new(0, 17, 1, -60)
+collectTreasureButton.Text = "COLLECT TREASURE"
+collectTreasureButton.BackgroundColor3 = THEME.Card
+collectTreasureButton.TextColor3 = THEME.TextMuted
+collectTreasureButton.Font = FONT_BOLD
+collectTreasureButton.TextSize = 12
+collectTreasureButton.BorderSizePixel = 0
+collectTreasureButton.AutoButtonColor = false
+collectTreasureButton.Parent = treasurePreviewPanel
+
+Instance.new("UICorner", collectTreasureButton).CornerRadius = UDim.new(0, 9)
+
+collectTreasureButtonStroke = Instance.new("UIStroke", collectTreasureButton)
+collectTreasureButtonStroke.Color = THEME.Border
+collectTreasureButtonStroke.Thickness = 1
+
+collectTreasureButton.MouseEnter:Connect(function()
+	if selectedTreasure then
+		TweenService:Create(collectTreasureButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = THEME.Accent
+		}):Play()
+
+		TweenService:Create(collectTreasureButtonStroke, TweenInfo.new(0.15), {
+			Color = THEME.Accent
+		}):Play()
+
+		collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+	end
+end)
+
+collectTreasureButton.MouseLeave:Connect(function()
+	if selectedTreasure then
+		TweenService:Create(collectTreasureButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = THEME.AccentDark
+		}):Play()
+
+		collectTreasureButton.TextColor3 = Color3.new(1, 1, 1)
+	else
+		TweenService:Create(collectTreasureButton, TweenInfo.new(0.15), {
+			BackgroundColor3 = THEME.Card
+		}):Play()
+
+		collectTreasureButton.TextColor3 = THEME.TextMuted
+	end
+end)
+
+collectTreasureButton.MouseButton1Down:Connect(function()
+	if selectedTreasure then
+		collectTreasureButton:TweenSize(
+			UDim2.new(1, -39, 0, 41),
+			Enum.EasingDirection.Out,
+			Enum.EasingStyle.Quad,
+			0.08,
+			true
+		)
+	end
+end)
+
+collectTreasureButton.MouseButton1Up:Connect(function()
+	collectTreasureButton:TweenSize(
+		UDim2.new(1, -35, 0, 45),
+		Enum.EasingDirection.Out,
+		Enum.EasingStyle.Quad,
+		0.08,
+		true
 	)
 end)
 
-treasureRarityLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	treasureRarityList.CanvasSize = UDim2.new(
-		0,
-		0,
-		0,
-		treasureRarityLayout.AbsoluteContentSize.Y + 15
-	)
-end)
-
-treasureAction.MouseEnter:Connect(function()
-	tween(treasureAction, {
-		BackgroundColor3 = THEME.CardHover
-	}):Play()
-end)
-
-treasureAction.MouseLeave:Connect(function()
-	tween(treasureAction, {
-		BackgroundColor3 = THEME.Accent
-	}):Play()
-end)
-
-treasureAction.MouseButton1Click:Connect(function()
+collectTreasureButton.MouseButton1Click:Connect(function()
 	if not selectedTreasure then
+		warn("Pilih treasure dulu!")
 		return
 	end
 
-	local success = pcall(function()
-		TreasureRemote:InvokeServer(selectedTreasure)
+	local treasureName = selectedTreasure
+
+	collectTreasureButton.Text = "COLLECTING..."
+	collectTreasureButton.Active = false
+
+	local success, result = pcall(function()
+		return treasureAddToInventoryRF:InvokeServer(
+			treasureName,
+			"Default"
+		)
 	end)
 
 	if success then
-		tween(treasureAction, {
-			BackgroundColor3 = Color3.fromRGB(74, 222, 128)
-		}):Play()
+		collectTreasureButton.Text = "✓ COLLECTED!"
+		collectTreasureButton.BackgroundColor3 = Color3.fromRGB(50, 190, 110)
+		collectTreasureButton.TextColor3 = Color3.new(1, 1, 1)
 
-		task.delay(0.25, function()
-			if treasureAction and treasureAction.Parent then
-				tween(treasureAction, {
-					BackgroundColor3 = THEME.Accent
-				}):Play()
+		task.delay(0.8, function()
+			if collectTreasureButton.Parent then
+				collectTreasureButton.Text = "COLLECT TREASURE"
+				collectTreasureButton.BackgroundColor3 = THEME.Accent
+				collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				collectTreasureButton.Active = true
+			end
+		end)
+	else
+		warn("[Level1 Hub] Treasure AddToInventory failed:", result)
+
+		collectTreasureButton.Text = "FAILED"
+		collectTreasureButton.BackgroundColor3 = Color3.fromRGB(210, 65, 75)
+		collectTreasureButton.TextColor3 = Color3.new(1, 1, 1)
+
+		task.delay(1, function()
+			if collectTreasureButton.Parent then
+				collectTreasureButton.Text = "COLLECT TREASURE"
+				collectTreasureButton.BackgroundColor3 = THEME.Accent
+				collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				collectTreasureButton.Active = true
 			end
 		end)
 	end
 end)
 
-refreshTreasure()
-
-
+collectTreasureButton.BackgroundColor3 = THEME.Card
+collectTreasureButton.TextColor3 = THEME.TextMuted
+collectTreasureButton.Active = true
 
 local teleportZones = {
 	{
@@ -1446,159 +2138,151 @@ end
 
 local teleportPage = Instance.new("Frame")
 teleportPage.Name = "TeleportPage"
-teleportPage.Size = UDim2.new(1, 0, 1, 0)
+teleportPage.Size = UDim2.new(0, 860, 1, -130)
+teleportPage.Position = UDim2.new(0, 20, 0, 120)
 teleportPage.BackgroundTransparency = 1
 teleportPage.Visible = false
-teleportPage.Parent = content
+teleportPage.Parent = frame
 
 pages.Teleport = teleportPage
 
-local teleportScroll = Instance.new("ScrollingFrame")
-teleportScroll.Name = "Scroll"
-teleportScroll.Size = UDim2.new(1, -20, 1, -20)
-teleportScroll.Position = UDim2.new(0, 10, 0, 10)
-teleportScroll.BackgroundTransparency = 1
-teleportScroll.BorderSizePixel = 0
-teleportScroll.ScrollBarThickness = 5
-teleportScroll.ScrollBarImageColor3 = THEME.Accent
-teleportScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-teleportScroll.Parent = teleportPage
+local teleportPanel = Instance.new("Frame")
+teleportPanel.Size = UDim2.new(1, 0, 1, 0)
+teleportPanel.BackgroundColor3 = THEME.Sidebar
+teleportPanel.BorderSizePixel = 0
+teleportPanel.Parent = teleportPage
+
+Instance.new("UICorner", teleportPanel).CornerRadius = UDim.new(0, 12)
+
+local teleportStroke = Instance.new("UIStroke", teleportPanel)
+teleportStroke.Color = THEME.Border
+teleportStroke.Thickness = 1
+
+local teleportTitle = Instance.new("TextLabel")
+teleportTitle.Size = UDim2.new(1, -30, 0, 30)
+teleportTitle.Position = UDim2.new(0, 15, 0, 15)
+teleportTitle.BackgroundTransparency = 1
+teleportTitle.Text = "TELEPORT"
+teleportTitle.TextColor3 = THEME.Text
+teleportTitle.Font = FONT_BOLD
+teleportTitle.TextSize = 15
+teleportTitle.TextXAlignment = Enum.TextXAlignment.Left
+teleportTitle.Parent = teleportPanel
+
+local teleportInfo = Instance.new("TextLabel")
+teleportInfo.Size = UDim2.new(1, -30, 0, 25)
+teleportInfo.Position = UDim2.new(0, 15, 0, 48)
+teleportInfo.BackgroundTransparency = 1
+teleportInfo.Text = "Select a location"
+teleportInfo.TextColor3 = THEME.TextMuted
+teleportInfo.Font = FONT_REGULAR
+teleportInfo.TextSize = 11
+teleportInfo.TextXAlignment = Enum.TextXAlignment.Left
+teleportInfo.Parent = teleportPanel
+
+local teleportList = Instance.new("ScrollingFrame")
+teleportList.Size = UDim2.new(1, -30, 1, -95)
+teleportList.Position = UDim2.new(0, 15, 0, 82)
+teleportList.BackgroundTransparency = 1
+teleportList.BorderSizePixel = 0
+teleportList.ScrollBarThickness = 3
+teleportList.ScrollBarImageColor3 = THEME.Accent
+teleportList.CanvasSize = UDim2.new(0, 0, 0, 0)
+teleportList.Parent = teleportPanel
 
 local teleportLayout = Instance.new("UIListLayout")
-teleportLayout.Padding = UDim.new(0, 12)
+teleportLayout.Padding = UDim.new(0, 8)
 teleportLayout.SortOrder = Enum.SortOrder.LayoutOrder
-teleportLayout.Parent = teleportScroll
+teleportLayout.Parent = teleportList
 
-local teleportPadding = Instance.new("UIPadding")
-teleportPadding.PaddingTop = UDim.new(0, 4)
-teleportPadding.PaddingBottom = UDim.new(0, 12)
-teleportPadding.Parent = teleportScroll
+local function createTeleportZoneTitle(name, order)
+	local label = Instance.new("TextLabel")
+	label.Name = name .. "Title"
+	label.Size = UDim2.new(1, -4, 0, 30)
+	label.LayoutOrder = order
+	label.BackgroundTransparency = 1
+	label.Text = string.upper(name)
+	label.TextColor3 = THEME.Accent
+	label.Font = FONT_BOLD
+	label.TextSize = 11
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = teleportList
 
-local function createTeleportButton(parent, locationName, position)
+	return label
+end
+
+local function createTeleportButton(name, position, order)
 	local button = Instance.new("TextButton")
-	button.Name = locationName:gsub("[^%w]", "")
-	button.Size = UDim2.new(0, 0, 0, 44)
+	button.Name = name
+	button.Size = UDim2.new(1, -4, 0, 48)
+	button.LayoutOrder = order
 	button.BackgroundColor3 = THEME.Card
 	button.BorderSizePixel = 0
-	button.Text = locationName
+	button.Text = name
 	button.TextColor3 = THEME.Text
 	button.Font = FONT_BOLD
-	button.TextSize = 9
+	button.TextSize = 11
 	button.TextWrapped = true
 	button.AutoButtonColor = false
-	button.Parent = parent
+	button.Parent = teleportList
 
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 9)
 
 	local stroke = Instance.new("UIStroke", button)
 	stroke.Color = THEME.Border
 	stroke.Thickness = 1
 
 	button.MouseEnter:Connect(function()
-		tween(button, {
-			BackgroundColor3 = THEME.CardHover
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.CardHover,
+			TextColor3 = THEME.Accent
 		}):Play()
 
-		tween(stroke, {
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
 			Color = THEME.Accent
 		}):Play()
 	end)
 
 	button.MouseLeave:Connect(function()
-		tween(button, {
-			BackgroundColor3 = THEME.Card
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.Card,
+			TextColor3 = THEME.Text
 		}):Play()
 
-		tween(stroke, {
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
 			Color = THEME.Border
 		}):Play()
 	end)
 
 	button.MouseButton1Click:Connect(function()
 		teleportTo(position)
-
-		tween(button, {
-			BackgroundColor3 = THEME.Accent
-		}):Play()
-
-		task.delay(0.2, function()
-			if button and button.Parent then
-				tween(button, {
-					BackgroundColor3 = THEME.Card
-				}):Play()
-			end
-		end)
 	end)
 
 	return button
 end
 
-for zoneIndex, zone in ipairs(teleportZones) do
-	local section = Instance.new("Frame")
-	section.Name = zone.Name:gsub("[^%w]", "")
-	section.Size = UDim2.new(1, -8, 0, 0)
-	section.BackgroundColor3 = THEME.Sidebar
-	section.BorderSizePixel = 0
-	section.LayoutOrder = zoneIndex
-	section.Parent = teleportScroll
+local teleportOrder = 0
 
-	Instance.new("UICorner", section).CornerRadius = UDim.new(0, 10)
+for _, zone in ipairs(teleportZones) do
+	teleportOrder += 1
+	createTeleportZoneTitle(zone.Name, teleportOrder)
 
-	local sectionStroke = Instance.new("UIStroke", section)
-	sectionStroke.Color = THEME.Border
-	sectionStroke.Thickness = 1
-
-	local title = Instance.new("TextLabel")
-	title.Name = "Title"
-	title.Size = UDim2.new(1, -24, 0, 32)
-	title.Position = UDim2.new(0, 12, 0, 8)
-	title.BackgroundTransparency = 1
-	title.Text = string.upper(zone.Name)
-	title.TextColor3 = THEME.Accent
-	title.Font = FONT_BOLD
-	title.TextSize = 12
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.Parent = section
-
-	local grid = Instance.new("Frame")
-	grid.Name = "Grid"
-	grid.Size = UDim2.new(1, -24, 0, 0)
-	grid.Position = UDim2.new(0, 12, 0, 48)
-	grid.BackgroundTransparency = 1
-	grid.Parent = section
-
-	local gridLayout = Instance.new("UIGridLayout")
-	gridLayout.CellSize = UDim2.new(0.333333, -7, 0, 44)
-	gridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
-	gridLayout.FillDirection = Enum.FillDirection.Horizontal
-	gridLayout.FillDirectionMaxCells = 3
-	gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	gridLayout.Parent = grid
-
-	for locationIndex, location in ipairs(zone.Locations) do
-		local button = createTeleportButton(
-			grid,
+	for _, location in ipairs(zone.Locations) do
+		teleportOrder += 1
+		createTeleportButton(
 			location[1],
-			location[2]
+			location[2],
+			teleportOrder
 		)
-
-		button.LayoutOrder = locationIndex
 	end
-
-	local rows = math.ceil(#zone.Locations / 3)
-	local gridHeight = rows * 44 + math.max(rows - 1, 0) * 8
-	local sectionHeight = 48 + gridHeight + 12
-
-	grid.Size = UDim2.new(1, -24, 0, gridHeight)
-	section.Size = UDim2.new(1, -8, 0, sectionHeight)
 end
 
 local function updateTeleportCanvas()
-	teleportScroll.CanvasSize = UDim2.new(
+	teleportList.CanvasSize = UDim2.new(
 		0,
 		0,
 		0,
-		teleportLayout.AbsoluteContentSize.Y + 20
+		teleportLayout.AbsoluteContentSize.Y + 10
 	)
 end
 
@@ -1607,25 +2291,160 @@ teleportLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateTel
 task.defer(updateTeleportCanvas)
 
 local function switchTab(name)
+	if not tabs[name] then
+		return
+	end
+
+	currentTab = name
+
+	for tabName, button in pairs(tabs) do
+		if tabName == name then
+			button.BackgroundTransparency = 0
+			button.BackgroundColor3 = THEME.CardSelected
+			button.TextColor3 = THEME.Accent
+		else
+			button.BackgroundTransparency = 1
+			button.TextColor3 = THEME.TextMuted
+		end
+	end
+
 	for pageName, page in pairs(pages) do
 		page.Visible = pageName == name
 	end
 
-	setTabStyle(fishTab, name == "Fish")
-	setTabStyle(treasureTab, name == "Treasure")
-	setTabStyle(teleportTab, name == "Teleport")
+	sidebar.Visible = name == "Fish"
+	previewPanel.Visible = name == "Fish"
+
+	treasureSidebar.Visible = name == "Treasure"
+	treasureContent.Visible = name == "Treasure"
+	treasurePreviewPanel.Visible = name == "Treasure"
+
+	teleportPage.Visible = name == "Teleport"
 end
 
-fishTab.MouseButton1Click:Connect(function()
-	switchTab("Fish")
-end)
-
-treasureTab.MouseButton1Click:Connect(function()
-	switchTab("Treasure")
-end)
-
-teleportTab.MouseButton1Click:Connect(function()
-	switchTab("Teleport")
-end)
+for name, button in pairs(tabs) do
+	button.MouseButton1Click:Connect(function()
+		switchTab(name)
+	end)
+end
 
 switchTab("Fish")
+
+local dragging = false
+local dragStart
+local startPos
+
+local dragArea = Instance.new("TextButton")
+dragArea.Name = "DragArea"
+dragArea.Size = UDim2.new(1, -135, 1, 0)
+dragArea.Position = UDim2.new(0, 0, 0, 0)
+dragArea.BackgroundTransparency = 1
+dragArea.BorderSizePixel = 0
+dragArea.Text = ""
+dragArea.AutoButtonColor = false
+dragArea.ZIndex = 1
+dragArea.Parent = header
+
+title.ZIndex = 2
+gameTitle.ZIndex = 2
+
+dragArea.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if not dragging then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		local delta = input.Position - dragStart
+
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = false
+	end
+end)
+
+minimize.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+
+	if isMinimized then
+		minimize.Text = "+"
+
+		gameTitle.Visible = false
+		tabBar.Visible = false
+		sidebar.Visible = false
+		content.Visible = false
+		previewPanel.Visible = false
+		treasureSidebar.Visible = false
+		treasureContent.Visible = false
+		treasurePreviewPanel.Visible = false
+		teleportPage.Visible = false
+
+		TweenService:Create(
+			frame,
+			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{
+				Size = minimizedSize
+			}
+		):Play()
+	else
+		minimize.Text = "—"
+
+		gameTitle.Visible = true
+		tabBar.Visible = true
+
+		switchTab(currentTab)
+
+		TweenService:Create(
+			frame,
+			TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{
+				Size = normalSize
+			}
+		):Play()
+	end
+end)
+
+close.MouseButton1Click:Connect(function()
+	local tween = TweenService:Create(
+		frame,
+		TweenInfo.new(0.25, Enum.EasingStyle.Quad),
+		{
+			Size = UDim2.new(0, 0, 0, 0)
+		}
+	)
+
+	tween:Play()
+	tween.Completed:Wait()
+
+	gui:Destroy()
+end)
+
+task.defer(function()
+	task.wait(0.1)
+	updateCanvas()
+	filterFish()
+	updateTreasureCanvas()
+	filterTreasure()
+end)
