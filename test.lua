@@ -548,6 +548,28 @@ end)
 
 
 
+local fishFolder = ReplicatedStorage
+	:WaitForChild("A__Assets")
+	:WaitForChild("Fish")
+
+local fishDataModule = ReplicatedStorage
+	:WaitForChild("Shared")
+	:WaitForChild("Data")
+	:WaitForChild("Template")
+	:WaitForChild("Fish")
+
+local addToInventoryRF = ReplicatedStorage
+	:WaitForChild("Packages")
+	:WaitForChild("_Index")
+	:WaitForChild("sleitnick_knit@1.7.0")
+	:WaitForChild("knit")
+	:WaitForChild("Services")
+	:WaitForChild("FishService")
+	:WaitForChild("RF")
+	:WaitForChild("AddToInventory")
+
+local FishIndex = {}
+
 local function loadFishIndex()
 	table.clear(FishIndex)
 
@@ -598,7 +620,11 @@ local function getFishRarity(fishObject)
 	return "Unknown"
 end
 
-table.clear(fishList)
+local function getFishRarityColor(rarity)
+	return THEME[rarity] or THEME.Unknown
+end
+
+local fishList = {}
 
 for _, fish in ipairs(fishFolder:GetChildren()) do
 	if fish:IsA("Model") or fish:IsA("BasePart") then
@@ -625,45 +651,7 @@ for index, data in ipairs(fishList) do
 	data.Order = index
 end
 
-sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, 165, 1, -130)
-sidebar.Position = UDim2.new(0, 20, 0, 120)
-sidebar.BackgroundColor3 = THEME.Sidebar
-sidebar.BorderSizePixel = 0
-sidebar.Parent = frame
-
-Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 12)
-
-local sideStroke = Instance.new("UIStroke", sidebar)
-sideStroke.Color = THEME.Border
-sideStroke.Thickness = 1
-
-local sideTitle = Instance.new("TextLabel")
-sideTitle.Size = UDim2.new(1, -20, 0, 25)
-sideTitle.Position = UDim2.new(0, 10, 0, 12)
-sideTitle.BackgroundTransparency = 1
-sideTitle.Text = "RARITY"
-sideTitle.TextColor3 = THEME.TextMuted
-sideTitle.Font = FONT_BOLD
-sideTitle.TextSize = 11
-sideTitle.TextXAlignment = Enum.TextXAlignment.Left
-sideTitle.Parent = sidebar
-
-local categoryContainer = Instance.new("Frame")
-categoryContainer.Name = "CategoryContainer"
-categoryContainer.Size = UDim2.new(1, -20, 1, -48)
-categoryContainer.Position = UDim2.new(0, 10, 0, 40)
-categoryContainer.BackgroundTransparency = 1
-categoryContainer.Parent = sidebar
-
-local sideLayout = Instance.new("UIListLayout")
-sideLayout.Padding = UDim.new(0, 5)
-sideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-sideLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
-sideLayout.Parent = categoryContainer
-
-content = Instance.new("Frame")
+local content = Instance.new("Frame")
 content.Name = "FishPage"
 content.Size = UDim2.new(0, 400, 1, -130)
 content.Position = UDim2.new(0, 200, 0, 120)
@@ -713,7 +701,7 @@ grid.CellPadding = UDim2.new(0, 9, 0, 9)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = list
 
-previewPanel = Instance.new("Frame")
+local previewPanel = Instance.new("Frame")
 previewPanel.Size = UDim2.new(0, 275, 1, -130)
 previewPanel.Position = UDim2.new(1, -295, 0, 120)
 previewPanel.BackgroundColor3 = THEME.Sidebar
@@ -953,7 +941,7 @@ local function updatePreview(fishName, rarity)
 
 	setPreviewRotation()
 
-	local rarityColor = getRarityColor(rarity)
+	local rarityColor = getFishRarityColor(rarity)
 
 	previewTitle.Text = string.upper(fishName)
 
@@ -1019,7 +1007,7 @@ local function createFishCard(data)
 	local fish = data.Object
 	local name = data.Name
 	local rarity = data.Rarity
-	local rarityColor = getRarityColor(rarity)
+	local rarityColor = getFishRarityColor(rarity)
 
 	local button = Instance.new("TextButton")
 	button.Name = name
@@ -1086,12 +1074,9 @@ local function createFishCard(data)
 			local miniRotation = CFrame.Angles(0, math.rad(180), 0)
 
 			if miniClone:IsA("Model") then
-				miniClone:PivotTo(
-					miniRotation * miniClone:GetPivot()
-				)
+				miniClone:PivotTo(miniRotation * miniClone:GetPivot())
 			elseif miniClone:IsA("BasePart") then
-				miniClone.CFrame =
-					miniRotation * miniClone.CFrame
+				miniClone.CFrame = miniRotation * miniClone.CFrame
 			end
 
 			local miniCamera = Instance.new("Camera")
@@ -1113,11 +1098,7 @@ local function createFishCard(data)
 				)
 
 			miniCamera.CFrame = CFrame.lookAt(
-				Vector3.new(
-					0,
-					miniMax * 0.03,
-					distance
-				),
+				Vector3.new(0, miniMax * 0.03, distance),
 				Vector3.new(0, 0, 0)
 			)
 		end
@@ -1267,7 +1248,7 @@ local function updateCategoryVisuals()
 		if isSelected then
 			button.BackgroundTransparency = 0
 			button.BackgroundColor3 = THEME.CardSelected
-			button.TextColor3 = getRarityColor(category)
+			button.TextColor3 = getFishRarityColor(category)
 		else
 			button.BackgroundTransparency = 1
 			button.BackgroundColor3 = THEME.Card
@@ -1278,10 +1259,48 @@ local function updateCategoryVisuals()
 
 		if accent then
 			accent.Visible = true
-			accent.BackgroundColor3 = getRarityColor(category)
+			accent.BackgroundColor3 = getFishRarityColor(category)
 		end
 	end
 end
+
+local sidebar = Instance.new("Frame")
+sidebar.Size = UDim2.new(0, 165, 1, -130)
+sidebar.Position = UDim2.new(0, 20, 0, 120)
+sidebar.BackgroundColor3 = THEME.Sidebar
+sidebar.BorderSizePixel = 0
+sidebar.Parent = frame
+
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 12)
+
+local sideStroke = Instance.new("UIStroke", sidebar)
+sideStroke.Color = THEME.Border
+sideStroke.Thickness = 1
+
+local sideTitle = Instance.new("TextLabel")
+sideTitle.Size = UDim2.new(1, -20, 0, 25)
+sideTitle.Position = UDim2.new(0, 10, 0, 12)
+sideTitle.BackgroundTransparency = 1
+sideTitle.Text = "RARITY"
+sideTitle.TextColor3 = THEME.TextMuted
+sideTitle.Font = FONT_BOLD
+sideTitle.TextSize = 11
+sideTitle.TextXAlignment = Enum.TextXAlignment.Left
+sideTitle.Parent = sidebar
+
+local categoryContainer = Instance.new("Frame")
+categoryContainer.Name = "CategoryContainer"
+categoryContainer.Size = UDim2.new(1, -20, 1, -48)
+categoryContainer.Position = UDim2.new(0, 10, 0, 40)
+categoryContainer.BackgroundTransparency = 1
+categoryContainer.Parent = sidebar
+
+local sideLayout = Instance.new("UIListLayout")
+sideLayout.Padding = UDim.new(0, 5)
+sideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+sideLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
+sideLayout.Parent = categoryContainer
 
 for index, category in ipairs(categories) do
 	local categoryButton = Instance.new("TextButton")
@@ -1290,9 +1309,7 @@ for index, category in ipairs(categories) do
 	categoryButton.BackgroundColor3 = THEME.Card
 	categoryButton.BackgroundTransparency = 1
 	categoryButton.BorderSizePixel = 0
-	categoryButton.Text =
-		RARITY_DISPLAY[category]
-		or string.upper(category)
+	categoryButton.Text = RARITY_DISPLAY[category] or string.upper(category)
 	categoryButton.TextColor3 = THEME.TextMuted
 	categoryButton.Font = FONT_BOLD
 	categoryButton.TextSize = 9
@@ -1308,7 +1325,7 @@ for index, category in ipairs(categories) do
 	accent.Name = "SelectedAccent"
 	accent.Size = UDim2.new(0, 3, 1, -10)
 	accent.Position = UDim2.new(0, 5, 0, 5)
-	accent.BackgroundColor3 = getRarityColor(category)
+	accent.BackgroundColor3 = getFishRarityColor(category)
 	accent.BorderSizePixel = 0
 	accent.Visible = true
 	accent.Parent = categoryButton
