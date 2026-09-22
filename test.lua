@@ -121,166 +121,6 @@ local TREASURE_RARITY_DISPLAY = {
 	Unknown = "UNKNOWN",
 }
 
-local FishIndex = {}
-local TreasureIndex = {}
-
-local function loadFishIndex()
-	table.clear(FishIndex)
-
-	local success, data = pcall(function()
-		return require(fishDataModule)
-	end)
-
-	if not success then
-		warn("[Level1 Hub] Cannot require Fish Index:", data)
-		return
-	end
-
-	if type(data) ~= "table" then
-		warn("[Level1 Hub] Fish Index is not a table.")
-		return
-	end
-
-	for fishName, fishInfo in pairs(data) do
-		if type(fishInfo) == "table" and fishInfo.Rarity then
-			FishIndex[tostring(fishName)] = tostring(fishInfo.Rarity)
-		end
-	end
-end
-
-local function loadTreasureIndex()
-	table.clear(TreasureIndex)
-
-	local success, data = pcall(function()
-		return require(treasureDataModule)
-	end)
-
-	if not success then
-		warn("[Level1 Hub] Cannot require Treasure Index:", data)
-		return
-	end
-
-	if type(data) ~= "table" then
-		warn("[Level1 Hub] Treasure Index is not a table.")
-		return
-	end
-
-	for treasureName, treasureInfo in pairs(data) do
-		if type(treasureInfo) == "table" and treasureInfo.Rarity then
-			TreasureIndex[tostring(treasureName)] = tostring(treasureInfo.Rarity)
-		end
-	end
-end
-
-loadFishIndex()
-loadTreasureIndex()
-
-local function getFishRarity(fishObject)
-	local fishName
-
-	if typeof(fishObject) == "Instance" then
-		fishName = fishObject.Name
-	else
-		fishName = tostring(fishObject)
-	end
-
-	if FishIndex[fishName] then
-		return FishIndex[fishName]
-	end
-
-	if typeof(fishObject) == "Instance" then
-		local rarity = fishObject:GetAttribute("Rarity")
-
-		if rarity then
-			return tostring(rarity)
-		end
-	end
-
-	return "Unknown"
-end
-
-local function getTreasureRarity(treasureObject)
-	local treasureName
-
-	if typeof(treasureObject) == "Instance" then
-		treasureName = treasureObject.Name
-	else
-		treasureName = tostring(treasureObject)
-	end
-
-	if TreasureIndex[treasureName] then
-		return TreasureIndex[treasureName]
-	end
-
-	if typeof(treasureObject) == "Instance" then
-		local rarity = treasureObject:GetAttribute("Rarity")
-
-		if rarity then
-			return tostring(rarity)
-		end
-	end
-
-	return "Unknown"
-end
-
-local function getRarityColor(rarity)
-	return THEME[rarity] or THEME.Unknown
-end
-
-local fishList = {}
-
-for _, fish in ipairs(fishFolder:GetChildren()) do
-	if fish:IsA("Model") or fish:IsA("BasePart") then
-		local rarity = getFishRarity(fish)
-
-		table.insert(fishList, {
-			Object = fish,
-			Name = fish.Name,
-			Rarity = rarity,
-			Order = RARITY_ORDER[rarity] or 999,
-		})
-	end
-end
-
-table.sort(fishList, function(a, b)
-	if a.Order ~= b.Order then
-		return a.Order < b.Order
-	end
-
-	return string.lower(a.Name) < string.lower(b.Name)
-end)
-
-for index, data in ipairs(fishList) do
-	data.Order = index
-end
-
-local treasureList = {}
-
-for _, treasure in ipairs(treasureFolder:GetChildren()) do
-	if treasure:IsA("Model") or treasure:IsA("BasePart") then
-		local rarity = getTreasureRarity(treasure)
-
-		table.insert(treasureList, {
-			Object = treasure,
-			Name = treasure.Name,
-			Rarity = rarity,
-			Order = RARITY_ORDER[rarity] or 999,
-		})
-	end
-end
-
-table.sort(treasureList, function(a, b)
-	if a.Order ~= b.Order then
-		return a.Order < b.Order
-	end
-
-	return string.lower(a.Name) < string.lower(b.Name)
-end)
-
-for index, data in ipairs(treasureList) do
-	data.Order = index
-end
-
 local gui = Instance.new("ScreenGui")
 gui.Name = "FishCatcherGui"
 gui.ResetOnSpawn = false
@@ -316,11 +156,13 @@ TweenService:Create(
 ):Play()
 
 local header = Instance.new("Frame")
+header.Name = "Header"
 header.Size = UDim2.new(1, 0, 0, 68)
 header.BackgroundTransparency = 1
 header.Parent = frame
 
 local title = Instance.new("TextLabel")
+title.Name = "Title"
 title.Size = UDim2.new(0, 300, 0, 30)
 title.Position = UDim2.new(0, 25, 0, 10)
 title.BackgroundTransparency = 1
@@ -332,6 +174,7 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = header
 
 local gameTitle = Instance.new("TextLabel")
+gameTitle.Name = "Subtitle"
 gameTitle.Size = UDim2.new(0, 400, 0, 18)
 gameTitle.Position = UDim2.new(0, 27, 0, 38)
 gameTitle.BackgroundTransparency = 1
@@ -343,6 +186,7 @@ gameTitle.TextXAlignment = Enum.TextXAlignment.Left
 gameTitle.Parent = header
 
 local minimize = Instance.new("TextButton")
+minimize.Name = "Minimize"
 minimize.Size = UDim2.new(0, 34, 0, 34)
 minimize.Position = UDim2.new(1, -88, 0, 16)
 minimize.Text = "—"
@@ -358,6 +202,7 @@ minimize.Parent = frame
 Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 9)
 
 local close = Instance.new("TextButton")
+close.Name = "Close"
 close.Size = UDim2.new(0, 34, 0, 34)
 close.Position = UDim2.new(1, -48, 0, 16)
 close.Text = "X"
@@ -400,6 +245,20 @@ close.MouseLeave:Connect(function()
 	}):Play()
 end)
 
+local dragArea = Instance.new("TextButton")
+dragArea.Name = "DragArea"
+dragArea.Size = UDim2.new(1, -135, 1, 0)
+dragArea.Position = UDim2.new(0, 0, 0, 0)
+dragArea.BackgroundTransparency = 1
+dragArea.BorderSizePixel = 0
+dragArea.Text = ""
+dragArea.AutoButtonColor = false
+dragArea.ZIndex = 1
+dragArea.Parent = header
+
+title.ZIndex = 2
+gameTitle.ZIndex = 2
+
 local tabBar = Instance.new("Frame")
 tabBar.Name = "TabBar"
 tabBar.Size = UDim2.new(1, -40, 0, 42)
@@ -432,11 +291,6 @@ tabPadding.Parent = tabBar
 local tabs = {}
 local pages = {}
 local currentTab = "Fish"
-
-local treasureSidebar
-local treasureContent
-local treasurePreviewPanel
-local teleportPage
 
 local function createTab(name, order)
 	local button = Instance.new("TextButton")
@@ -484,6 +338,7 @@ createTab("Treasure", 2)
 createTab("Teleport", 3)
 
 local sidebar = Instance.new("Frame")
+sidebar.Name = "FishSidebar"
 sidebar.Size = UDim2.new(0, 165, 1, -130)
 sidebar.Position = UDim2.new(0, 20, 0, 120)
 sidebar.BackgroundColor3 = THEME.Sidebar
@@ -497,6 +352,7 @@ sideStroke.Color = THEME.Border
 sideStroke.Thickness = 1
 
 local sideTitle = Instance.new("TextLabel")
+sideTitle.Name = "Title"
 sideTitle.Size = UDim2.new(1, -20, 0, 25)
 sideTitle.Position = UDim2.new(0, 10, 0, 12)
 sideTitle.BackgroundTransparency = 1
@@ -531,6 +387,7 @@ content.Parent = frame
 pages.Fish = content
 
 local searchFrame = Instance.new("Frame")
+searchFrame.Name = "SearchFrame"
 searchFrame.Size = UDim2.new(1, 0, 0, 42)
 searchFrame.BackgroundColor3 = THEME.Panel
 searchFrame.BorderSizePixel = 0
@@ -540,8 +397,10 @@ Instance.new("UICorner", searchFrame).CornerRadius = UDim.new(0, 10)
 
 local searchStroke = Instance.new("UIStroke", searchFrame)
 searchStroke.Color = THEME.Border
+searchStroke.Thickness = 1
 
 local search = Instance.new("TextBox")
+search.Name = "Search"
 search.Size = UDim2.new(1, -20, 1, 0)
 search.Position = UDim2.new(0, 10, 0, 0)
 search.Text = ""
@@ -556,6 +415,7 @@ search.TextXAlignment = Enum.TextXAlignment.Left
 search.Parent = searchFrame
 
 local list = Instance.new("ScrollingFrame")
+list.Name = "FishList"
 list.Size = UDim2.new(1, 0, 1, -55)
 list.Position = UDim2.new(0, 0, 0, 55)
 list.BackgroundTransparency = 1
@@ -566,12 +426,14 @@ list.CanvasSize = UDim2.new(0, 0, 0, 0)
 list.Parent = content
 
 local grid = Instance.new("UIGridLayout")
+grid.Name = "FishGrid"
 grid.CellSize = UDim2.new(0, 125, 0, 125)
 grid.CellPadding = UDim2.new(0, 9, 0, 9)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 grid.Parent = list
 
 local previewPanel = Instance.new("Frame")
+previewPanel.Name = "FishPreview"
 previewPanel.Size = UDim2.new(0, 275, 1, -130)
 previewPanel.Position = UDim2.new(1, -295, 0, 120)
 previewPanel.BackgroundColor3 = THEME.Sidebar
@@ -585,6 +447,7 @@ previewStroke.Color = THEME.Border
 previewStroke.Thickness = 1
 
 local previewHeader = Instance.new("TextLabel")
+previewHeader.Name = "Header"
 previewHeader.Size = UDim2.new(1, -25, 0, 20)
 previewHeader.Position = UDim2.new(0, 13, 0, 13)
 previewHeader.BackgroundTransparency = 1
@@ -596,6 +459,7 @@ previewHeader.TextXAlignment = Enum.TextXAlignment.Left
 previewHeader.Parent = previewPanel
 
 local previewTitle = Instance.new("TextLabel")
+previewTitle.Name = "Title"
 previewTitle.Size = UDim2.new(1, -20, 0, 42)
 previewTitle.Position = UDim2.new(0, 10, 0, 38)
 previewTitle.BackgroundTransparency = 1
@@ -607,6 +471,7 @@ previewTitle.TextWrapped = true
 previewTitle.Parent = previewPanel
 
 local previewRarity = Instance.new("TextLabel")
+previewRarity.Name = "Rarity"
 previewRarity.Size = UDim2.new(1, -20, 0, 22)
 previewRarity.Position = UDim2.new(0, 10, 0, 80)
 previewRarity.BackgroundTransparency = 1
@@ -617,6 +482,7 @@ previewRarity.TextSize = 10
 previewRarity.Parent = previewPanel
 
 local viewport = Instance.new("ViewportFrame")
+viewport.Name = "Viewport"
 viewport.Size = UDim2.new(1, -35, 0, 285)
 viewport.Position = UDim2.new(0, 17, 0, 108)
 viewport.BackgroundColor3 = Color3.fromRGB(10, 12, 17)
@@ -628,6 +494,231 @@ viewport.Parent = previewPanel
 
 Instance.new("UICorner", viewport).CornerRadius = UDim.new(0, 12)
 
+local treasureSidebar = Instance.new("Frame")
+treasureSidebar.Name = "TreasureSidebar"
+treasureSidebar.Size = UDim2.new(0, 165, 1, -130)
+treasureSidebar.Position = UDim2.new(0, 20, 0, 120)
+treasureSidebar.BackgroundColor3 = THEME.Sidebar
+treasureSidebar.BorderSizePixel = 0
+treasureSidebar.Visible = false
+treasureSidebar.Parent = frame
+
+Instance.new("UICorner", treasureSidebar).CornerRadius = UDim.new(0, 12)
+
+local treasureSideStroke = Instance.new("UIStroke", treasureSidebar)
+treasureSideStroke.Color = THEME.Border
+treasureSideStroke.Thickness = 1
+
+local treasureSideTitle = Instance.new("TextLabel")
+treasureSideTitle.Name = "Title"
+treasureSideTitle.Size = UDim2.new(1, -20, 0, 25)
+treasureSideTitle.Position = UDim2.new(0, 10, 0, 12)
+treasureSideTitle.BackgroundTransparency = 1
+treasureSideTitle.Text = "RARITY"
+treasureSideTitle.TextColor3 = THEME.TextMuted
+treasureSideTitle.Font = FONT_BOLD
+treasureSideTitle.TextSize = 11
+treasureSideTitle.TextXAlignment = Enum.TextXAlignment.Left
+treasureSideTitle.Parent = treasureSidebar
+
+local treasureCategoryContainer = Instance.new("Frame")
+treasureCategoryContainer.Name = "CategoryContainer"
+treasureCategoryContainer.Size = UDim2.new(1, -20, 1, -48)
+treasureCategoryContainer.Position = UDim2.new(0, 10, 0, 40)
+treasureCategoryContainer.BackgroundTransparency = 1
+treasureCategoryContainer.Parent = treasureSidebar
+
+local treasureSideLayout = Instance.new("UIListLayout")
+treasureSideLayout.Padding = UDim.new(0, 5)
+treasureSideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+treasureSideLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+treasureSideLayout.SortOrder = Enum.SortOrder.LayoutOrder
+treasureSideLayout.Parent = treasureCategoryContainer
+
+local treasureContent = Instance.new("Frame")
+treasureContent.Name = "TreasurePage"
+treasureContent.Size = UDim2.new(0, 400, 1, -130)
+treasureContent.Position = UDim2.new(0, 200, 0, 120)
+treasureContent.BackgroundTransparency = 1
+treasureContent.Visible = false
+treasureContent.Parent = frame
+
+pages.Treasure = treasureContent
+
+local treasureSearchFrame = Instance.new("Frame")
+treasureSearchFrame.Name = "SearchFrame"
+treasureSearchFrame.Size = UDim2.new(1, 0, 0, 42)
+treasureSearchFrame.Position = UDim2.new(0, 0, 0, 0)
+treasureSearchFrame.BackgroundColor3 = THEME.Panel
+treasureSearchFrame.BorderSizePixel = 0
+treasureSearchFrame.Parent = treasureContent
+
+Instance.new("UICorner", treasureSearchFrame).CornerRadius = UDim.new(0, 10)
+
+local treasureSearchStroke = Instance.new("UIStroke", treasureSearchFrame)
+treasureSearchStroke.Color = THEME.Border
+treasureSearchStroke.Thickness = 1
+
+local treasureSearch = Instance.new("TextBox")
+treasureSearch.Name = "Search"
+treasureSearch.Size = UDim2.new(1, -20, 1, 0)
+treasureSearch.Position = UDim2.new(0, 10, 0, 0)
+treasureSearch.Text = ""
+treasureSearch.PlaceholderText = "Search Treasure . . ."
+treasureSearch.BackgroundTransparency = 1
+treasureSearch.TextColor3 = THEME.Text
+treasureSearch.PlaceholderColor3 = THEME.TextMuted
+treasureSearch.Font = FONT_REGULAR
+treasureSearch.TextSize = 13
+treasureSearch.ClearTextOnFocus = false
+treasureSearch.TextXAlignment = Enum.TextXAlignment.Left
+treasureSearch.Parent = treasureSearchFrame
+
+local treasureListFrame = Instance.new("ScrollingFrame")
+treasureListFrame.Name = "TreasureList"
+treasureListFrame.Size = UDim2.new(1, 0, 1, -55)
+treasureListFrame.Position = UDim2.new(0, 0, 0, 55)
+treasureListFrame.BackgroundTransparency = 1
+treasureListFrame.BorderSizePixel = 0
+treasureListFrame.ScrollBarThickness = 3
+treasureListFrame.ScrollBarImageColor3 = THEME.Accent
+treasureListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+treasureListFrame.Parent = treasureContent
+
+local treasureGrid = Instance.new("UIGridLayout")
+treasureGrid.Name = "TreasureGrid"
+treasureGrid.CellSize = UDim2.new(0, 125, 0, 125)
+treasureGrid.CellPadding = UDim2.new(0, 9, 0, 9)
+treasureGrid.SortOrder = Enum.SortOrder.LayoutOrder
+treasureGrid.Parent = treasureListFrame
+
+local treasurePreviewPanel = Instance.new("Frame")
+treasurePreviewPanel.Name = "TreasurePreview"
+treasurePreviewPanel.Size = UDim2.new(0, 275, 1, -130)
+treasurePreviewPanel.Position = UDim2.new(1, -295, 0, 120)
+treasurePreviewPanel.BackgroundColor3 = THEME.Sidebar
+treasurePreviewPanel.BorderSizePixel = 0
+treasurePreviewPanel.Visible = false
+treasurePreviewPanel.Parent = frame
+
+Instance.new("UICorner", treasurePreviewPanel).CornerRadius = UDim.new(0, 12)
+
+local treasurePreviewStroke = Instance.new("UIStroke", treasurePreviewPanel)
+treasurePreviewStroke.Color = THEME.Border
+treasurePreviewStroke.Thickness = 1
+
+local treasurePreviewHeader = Instance.new("TextLabel")
+treasurePreviewHeader.Name = "Header"
+treasurePreviewHeader.Size = UDim2.new(1, -25, 0, 20)
+treasurePreviewHeader.Position = UDim2.new(0, 13, 0, 13)
+treasurePreviewHeader.BackgroundTransparency = 1
+treasurePreviewHeader.Text = "TREASURE PREVIEW"
+treasurePreviewHeader.TextColor3 = THEME.TextMuted
+treasurePreviewHeader.Font = FONT_BOLD
+treasurePreviewHeader.TextSize = 10
+treasurePreviewHeader.TextXAlignment = Enum.TextXAlignment.Left
+treasurePreviewHeader.Parent = treasurePreviewPanel
+
+local treasurePreviewTitle = Instance.new("TextLabel")
+treasurePreviewTitle.Name = "Title"
+treasurePreviewTitle.Size = UDim2.new(1, -20, 0, 42)
+treasurePreviewTitle.Position = UDim2.new(0, 10, 0, 38)
+treasurePreviewTitle.BackgroundTransparency = 1
+treasurePreviewTitle.Text = "NO TREASURE SELECTED"
+treasurePreviewTitle.TextColor3 = THEME.Text
+treasurePreviewTitle.Font = FONT_BOLD
+treasurePreviewTitle.TextSize = 15
+treasurePreviewTitle.TextWrapped = true
+treasurePreviewTitle.Parent = treasurePreviewPanel
+
+local treasurePreviewInfo = Instance.new("TextLabel")
+treasurePreviewInfo.Name = "Info"
+treasurePreviewInfo.Size = UDim2.new(1, -20, 0, 22)
+treasurePreviewInfo.Position = UDim2.new(0, 10, 0, 80)
+treasurePreviewInfo.BackgroundTransparency = 1
+treasurePreviewInfo.Text = "SELECT A TREASURE"
+treasurePreviewInfo.TextColor3 = THEME.TextMuted
+treasurePreviewInfo.Font = FONT_BOLD
+treasurePreviewInfo.TextSize = 10
+treasurePreviewInfo.Parent = treasurePreviewPanel
+
+local treasureViewport = Instance.new("ViewportFrame")
+treasureViewport.Name = "Viewport"
+treasureViewport.Size = UDim2.new(1, -35, 0, 285)
+treasureViewport.Position = UDim2.new(0, 17, 0, 108)
+treasureViewport.BackgroundColor3 = Color3.fromRGB(10, 12, 17)
+treasureViewport.BorderSizePixel = 0
+treasureViewport.Ambient = Color3.fromRGB(200, 200, 200)
+treasureViewport.LightColor = Color3.fromRGB(255, 255, 255)
+treasureViewport.LightDirection = Vector3.new(-1, -1, -1)
+treasureViewport.Parent = treasurePreviewPanel
+
+Instance.new("UICorner", treasureViewport).CornerRadius = UDim.new(0, 12)
+
+local teleportPage = Instance.new("Frame")
+teleportPage.Name = "TeleportPage"
+teleportPage.Size = UDim2.new(0, 860, 1, -130)
+teleportPage.Position = UDim2.new(0, 20, 0, 120)
+teleportPage.BackgroundTransparency = 1
+teleportPage.Visible = false
+teleportPage.Parent = frame
+
+pages.Teleport = teleportPage
+
+local teleportPanel = Instance.new("Frame")
+teleportPanel.Name = "TeleportPanel"
+teleportPanel.Size = UDim2.new(1, 0, 1, 0)
+teleportPanel.BackgroundColor3 = THEME.Sidebar
+teleportPanel.BorderSizePixel = 0
+teleportPanel.Parent = teleportPage
+
+Instance.new("UICorner", teleportPanel).CornerRadius = UDim.new(0, 12)
+
+local teleportStroke = Instance.new("UIStroke", teleportPanel)
+teleportStroke.Color = THEME.Border
+teleportStroke.Thickness = 1
+
+local teleportTitle = Instance.new("TextLabel")
+teleportTitle.Name = "Title"
+teleportTitle.Size = UDim2.new(1, -30, 0, 30)
+teleportTitle.Position = UDim2.new(0, 15, 0, 15)
+teleportTitle.BackgroundTransparency = 1
+teleportTitle.Text = "TELEPORT"
+teleportTitle.TextColor3 = THEME.Text
+teleportTitle.Font = FONT_BOLD
+teleportTitle.TextSize = 15
+teleportTitle.TextXAlignment = Enum.TextXAlignment.Left
+teleportTitle.Parent = teleportPanel
+
+local teleportInfo = Instance.new("TextLabel")
+teleportInfo.Name = "Info"
+teleportInfo.Size = UDim2.new(1, -30, 0, 25)
+teleportInfo.Position = UDim2.new(0, 15, 0, 48)
+teleportInfo.BackgroundTransparency = 1
+teleportInfo.Text = "Select a location"
+teleportInfo.TextColor3 = THEME.TextMuted
+teleportInfo.Font = FONT_REGULAR
+teleportInfo.TextSize = 11
+teleportInfo.TextXAlignment = Enum.TextXAlignment.Left
+teleportInfo.Parent = teleportPanel
+
+local teleportList = Instance.new("ScrollingFrame")
+teleportList.Name = "TeleportList"
+teleportList.Size = UDim2.new(1, -30, 1, -95)
+teleportList.Position = UDim2.new(0, 15, 0, 82)
+teleportList.BackgroundTransparency = 1
+teleportList.BorderSizePixel = 0
+teleportList.ScrollBarThickness = 3
+teleportList.ScrollBarImageColor3 = THEME.Accent
+teleportList.CanvasSize = UDim2.new(0, 0, 0, 0)
+teleportList.Parent = teleportPanel
+
+local teleportLayout = Instance.new("UIListLayout")
+teleportLayout.Name = "TeleportLayout"
+teleportLayout.Padding = UDim.new(0, 8)
+teleportLayout.SortOrder = Enum.SortOrder.LayoutOrder
+teleportLayout.Parent = teleportList
+
 local viewportCamera
 local previewWorld
 local previewClone
@@ -637,231 +728,13 @@ local previewRotation = 0
 local previewDragging = false
 local previewLastX = 0
 
-local function getModelBounds(object)
-	if object:IsA("Model") then
-		return object:GetBoundingBox()
-	elseif object:IsA("BasePart") then
-		return object.CFrame, object.Size
-	end
+local selectedFish
+local selectedTreasure
 
-	return nil, nil
-end
-
-local function centerPreviewObject(object)
-	local cf, size = getModelBounds(object)
-
-	if not cf then
-		return nil, nil
-	end
-
-	local center = cf.Position
-
-	if object:IsA("Model") then
-		local pivot = object:GetPivot()
-
-		local newPivot =
-			CFrame.new(pivot.Position - center)
-			* pivot.Rotation
-
-		object:PivotTo(newPivot)
-	elseif object:IsA("BasePart") then
-		local rotation = object.CFrame - object.CFrame.Position
-
-		object.CFrame =
-			CFrame.new(-center)
-			* rotation
-	end
-
-	local newCF, newSize = getModelBounds(object)
-
-	return newCF, newSize
-end
-
-local function preparePreviewObject(object)
-	if object:IsA("BasePart") then
-		object.Anchored = true
-		object.CanCollide = false
-		object.CanTouch = false
-		object.CanQuery = false
-		object.CastShadow = true
-	end
-
-	for _, descendant in ipairs(object:GetDescendants()) do
-		if descendant:IsA("BasePart") then
-			descendant.Anchored = true
-			descendant.CanCollide = false
-			descendant.CanTouch = false
-			descendant.CanQuery = false
-			descendant.CastShadow = true
-		elseif descendant:IsA("Script")
-			or descendant:IsA("LocalScript")
-			or descendant:IsA("ModuleScript") then
-			descendant:Destroy()
-		end
-	end
-end
-
-local function setPreviewRotation()
-	if not previewClone or not previewBasePivot then
-		return
-	end
-
-	local rotation =
-		CFrame.Angles(
-			0,
-			math.rad(previewRotation),
-			0
-		)
-
-	local pivot =
-		rotation
-		* previewBasePivot
-
-	if previewClone:IsA("Model") then
-		previewClone:PivotTo(pivot)
-	elseif previewClone:IsA("BasePart") then
-		previewClone.CFrame = pivot
-	end
-end
-
-local function updatePreview(fishName, rarity)
-	viewport:ClearAllChildren()
-
-	previewWorld = nil
-	previewClone = nil
-	previewBasePivot = nil
-	viewportCamera = nil
-	previewRotation = 0
-	previewDragging = false
-
-	local targetFish = fishFolder:FindFirstChild(fishName)
-
-	if not targetFish then
-		previewTitle.Text = "NO FISH SELECTED"
-		previewRarity.Text = "SELECT A FISH"
-		previewRarity.TextColor3 = THEME.TextMuted
-		return
-	end
-
-	previewWorld = Instance.new("WorldModel")
-	previewWorld.Name = "PreviewWorld"
-	previewWorld.Parent = viewport
-
-	local success, clone = pcall(function()
-		return targetFish:Clone()
-	end)
-
-	if not success or not clone then
-		previewTitle.Text = "PREVIEW ERROR"
-		previewRarity.Text = "CLONE FAILED"
-		previewRarity.TextColor3 = Color3.fromRGB(255, 85, 85)
-		return
-	end
-
-	clone.Parent = previewWorld
-	previewClone = clone
-
-	preparePreviewObject(clone)
-
-	local centeredCF, centeredSize = centerPreviewObject(clone)
-
-	if not centeredCF or not centeredSize then
-		previewTitle.Text = "PREVIEW ERROR"
-		previewRarity.Text = "INVALID MODEL"
-		previewRarity.TextColor3 = Color3.fromRGB(255, 85, 85)
-		return
-	end
-
-	local maxSize = math.max(
-		centeredSize.X,
-		centeredSize.Y,
-		centeredSize.Z
-	)
-
-	if maxSize <= 0 or maxSize ~= maxSize then
-		maxSize = 4
-	end
-
-	local camera = Instance.new("Camera")
-	camera.Name = "PreviewCamera"
-	camera.FieldOfView = 35
-	camera.Parent = viewport
-	viewport.CurrentCamera = camera
-	viewportCamera = camera
-
-	local cameraDistance =
-		math.max(maxSize * 2.25, 4)
-
-	camera.CFrame = CFrame.lookAt(
-		Vector3.new(
-			0,
-			maxSize * 0.04,
-			cameraDistance
-		),
-		Vector3.new(0, 0, 0)
-	)
-
-	local sideRotation = CFrame.Angles(0, math.rad(90), 0)
-
-	if clone:IsA("Model") then
-		previewBasePivot = clone:GetPivot() * sideRotation
-	elseif clone:IsA("BasePart") then
-		previewBasePivot = clone.CFrame * sideRotation
-	end
-
-	setPreviewRotation()
-
-	local rarityColor = getRarityColor(rarity)
-
-	previewTitle.Text = string.upper(fishName)
-
-	previewRarity.Text =
-		RARITY_DISPLAY[rarity]
-		or string.upper(rarity)
-
-	previewRarity.TextColor3 = rarityColor
-end
-
-viewport.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		previewDragging = true
-		previewLastX = input.Position.X
-	end
-end)
-
-UIS.InputChanged:Connect(function(input)
-	if not previewDragging then
-		return
-	end
-
-	if input.UserInputType == Enum.UserInputType.MouseMovement
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		local currentX = input.Position.X
-		local delta = currentX - previewLastX
-
-		previewLastX = currentX
-		previewRotation += delta * 0.6
-
-		if previewRotation > 360 then
-			previewRotation -= 360
-		elseif previewRotation < -360 then
-			previewRotation += 360
-		end
-
-		setPreviewRotation()
-	end
-end)
-
-UIS.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch then
-
-		previewDragging = false
-	end
-end)
+local fishList = {}
+local treasureList = {}
+local FishIndex = {}
+local TreasureIndex = {}
 
 local function switchTab(name)
 	if not tabs[name] then
@@ -888,21 +761,11 @@ local function switchTab(name)
 	sidebar.Visible = name == "Fish"
 	previewPanel.Visible = name == "Fish"
 
-	if treasureSidebar then
-		treasureSidebar.Visible = name == "Treasure"
-	end
+	treasureSidebar.Visible = name == "Treasure"
+	treasureContent.Visible = name == "Treasure"
+	treasurePreviewPanel.Visible = name == "Treasure"
 
-	if treasureContent then
-		treasureContent.Visible = name == "Treasure"
-	end
-
-	if treasurePreviewPanel then
-		treasurePreviewPanel.Visible = name == "Treasure"
-	end
-
-	if teleportPage then
-		teleportPage.Visible = name == "Teleport"
-	end
+	teleportPage.Visible = name == "Teleport"
 end
 
 for name, button in pairs(tabs) do
@@ -911,23 +774,11 @@ for name, button in pairs(tabs) do
 	end)
 end
 
+switchTab("Fish")
+
 local dragging = false
 local dragStart
 local startPos
-
-local dragArea = Instance.new("TextButton")
-dragArea.Name = "DragArea"
-dragArea.Size = UDim2.new(1, -135, 1, 0)
-dragArea.Position = UDim2.new(0, 0, 0, 0)
-dragArea.BackgroundTransparency = 1
-dragArea.BorderSizePixel = 0
-dragArea.Text = ""
-dragArea.AutoButtonColor = false
-dragArea.ZIndex = 1
-dragArea.Parent = header
-
-title.ZIndex = 2
-gameTitle.ZIndex = 2
 
 dragArea.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -971,27 +822,17 @@ minimize.MouseButton1Click:Connect(function()
 
 	if isMinimized then
 		minimize.Text = "+"
-		gameTitle.Visible = false
 		tabBar.Visible = false
+
+		for _, page in pairs(pages) do
+			page.Visible = false
+		end
+
 		sidebar.Visible = false
-		content.Visible = false
 		previewPanel.Visible = false
-
-		if treasureSidebar then
-			treasureSidebar.Visible = false
-		end
-
-		if treasureContent then
-			treasureContent.Visible = false
-		end
-
-		if treasurePreviewPanel then
-			treasurePreviewPanel.Visible = false
-		end
-
-		if teleportPage then
-			teleportPage.Visible = false
-		end
+		treasureSidebar.Visible = false
+		treasureContent.Visible = false
+		treasurePreviewPanel.Visible = false
 
 		TweenService:Create(
 			frame,
@@ -1002,10 +843,7 @@ minimize.MouseButton1Click:Connect(function()
 		):Play()
 	else
 		minimize.Text = "—"
-		gameTitle.Visible = true
 		tabBar.Visible = true
-
-		switchTab(currentTab)
 
 		TweenService:Create(
 			frame,
@@ -1014,22 +852,15 @@ minimize.MouseButton1Click:Connect(function()
 				Size = normalSize
 			}
 		):Play()
+
+		task.delay(0.3, function()
+			if frame.Parent and not isMinimized then
+				switchTab(currentTab)
+			end
+		end)
 	end
 end)
 
 close.MouseButton1Click:Connect(function()
-	local tween = TweenService:Create(
-		frame,
-		TweenInfo.new(0.25, Enum.EasingStyle.Quad),
-		{
-			Size = UDim2.new(0, 0, 0, 0)
-		}
-	)
-
-	tween:Play()
-	tween.Completed:Wait()
-
 	gui:Destroy()
 end)
-
-switchTab("Fish")
