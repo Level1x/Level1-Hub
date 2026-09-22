@@ -53,6 +53,8 @@ local THEME = {
 
 	Accent = Color3.fromRGB(85, 225, 219),
 	AccentDark = Color3.fromRGB(29, 151, 167),
+	ActionText = Color3.fromRGB(5, 27, 38),
+	ActionTextMuted = Color3.fromRGB(176, 184, 188),
 
 	Text = Color3.fromRGB(235, 246, 251),
 	TextMuted = Color3.fromRGB(151, 176, 191),
@@ -1013,7 +1015,7 @@ catchButton.Size = UDim2.new(1, -35, 0, 45)
 catchButton.Position = UDim2.new(0, 17, 1, -60)
 catchButton.Text = "CATCH FISH"
 catchButton.BackgroundColor3 = THEME.Card
-catchButton.TextColor3 = THEME.TextMuted
+catchButton.TextColor3 = THEME.ActionTextMuted
 catchButton.Font = FONT_BOLD
 catchButton.TextSize = 12
 catchButton.BorderSizePixel = 0
@@ -1028,7 +1030,7 @@ catchButtonStroke.Thickness = 1
 addSurfaceGradient(catchButton, 15)
 
 catchButton.BackgroundColor3 = THEME.Card
-catchButton.TextColor3 = THEME.TextMuted
+catchButton.TextColor3 = THEME.ActionTextMuted
 catchButton.Active = true
 
 local function createFishCard(data)
@@ -1197,7 +1199,7 @@ local function createFishCard(data)
 		stroke.Color = rarityColor
 
 		catchButton.BackgroundColor3 = THEME.Accent
-		catchButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+		catchButton.TextColor3 = THEME.ActionText
 		catchButtonStroke.Color = THEME.Accent
 
 		updatePreview(name, rarity)
@@ -1542,7 +1544,7 @@ catchButton.MouseEnter:Connect(function()
 			Color = THEME.Accent
 		}):Play()
 
-		catchButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+		catchButton.TextColor3 = THEME.ActionText
 	end
 end)
 
@@ -1552,13 +1554,13 @@ catchButton.MouseLeave:Connect(function()
 			BackgroundColor3 = THEME.AccentDark
 		}):Play()
 
-		catchButton.TextColor3 = Color3.new(1, 1, 1)
+		catchButton.TextColor3 = THEME.ActionText
 	else
 		TweenService:Create(catchButton, TweenInfo.new(0.15), {
 			BackgroundColor3 = THEME.Card
 		}):Play()
 
-		catchButton.TextColor3 = THEME.TextMuted
+		catchButton.TextColor3 = THEME.ActionTextMuted
 	end
 end)
 
@@ -1611,7 +1613,7 @@ catchButton.MouseButton1Click:Connect(function()
 			if catchButton.Parent then
 				catchButton.Text = "CATCH FISH"
 				catchButton.BackgroundColor3 = THEME.Accent
-				catchButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				catchButton.TextColor3 = THEME.ActionText
 				catchButton.Active = true
 			end
 		end)
@@ -1626,7 +1628,7 @@ catchButton.MouseButton1Click:Connect(function()
 			if catchButton.Parent then
 				catchButton.Text = "CATCH FISH"
 				catchButton.BackgroundColor3 = THEME.Accent
-				catchButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				catchButton.TextColor3 = THEME.ActionText
 				catchButton.Active = true
 			end
 		end)
@@ -1948,7 +1950,7 @@ collectTreasureButton.Size = UDim2.new(1, -35, 0, 45)
 collectTreasureButton.Position = UDim2.new(0, 17, 1, -60)
 collectTreasureButton.Text = "COLLECT TREASURE"
 collectTreasureButton.BackgroundColor3 = THEME.Card
-collectTreasureButton.TextColor3 = THEME.TextMuted
+collectTreasureButton.TextColor3 = THEME.ActionTextMuted
 collectTreasureButton.Font = FONT_BOLD
 collectTreasureButton.TextSize = 12
 collectTreasureButton.BorderSizePixel = 0
@@ -1963,7 +1965,7 @@ collectTreasureButtonStroke.Thickness = 1
 addSurfaceGradient(collectTreasureButton, 15)
 
 collectTreasureButton.BackgroundColor3 = THEME.Card
-collectTreasureButton.TextColor3 = THEME.TextMuted
+collectTreasureButton.TextColor3 = THEME.ActionTextMuted
 collectTreasureButton.Active = true
 
 local function createTreasureCard(data)
@@ -2134,7 +2136,7 @@ local function createTreasureCard(data)
 		stroke.Color = rarityColor
 
 		collectTreasureButton.BackgroundColor3 = THEME.Accent
-		collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+		collectTreasureButton.TextColor3 = THEME.ActionText
 		collectTreasureButtonStroke.Color = THEME.Accent
 
 		updateTreasurePreview(name, rarity)
@@ -2476,7 +2478,7 @@ collectTreasureButton.MouseEnter:Connect(function()
 			Color = THEME.Accent
 		}):Play()
 
-		collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+		collectTreasureButton.TextColor3 = THEME.ActionText
 	end
 end)
 
@@ -2486,13 +2488,13 @@ collectTreasureButton.MouseLeave:Connect(function()
 			BackgroundColor3 = THEME.AccentDark
 		}):Play()
 
-		collectTreasureButton.TextColor3 = Color3.new(1, 1, 1)
+		collectTreasureButton.TextColor3 = THEME.ActionText
 	else
 		TweenService:Create(collectTreasureButton, TweenInfo.new(0.15), {
 			BackgroundColor3 = THEME.Card
 		}):Play()
 
-		collectTreasureButton.TextColor3 = THEME.TextMuted
+		collectTreasureButton.TextColor3 = THEME.ActionTextMuted
 	end
 end)
 
@@ -2545,7 +2547,7 @@ collectTreasureButton.MouseButton1Click:Connect(function()
 			if collectTreasureButton.Parent then
 				collectTreasureButton.Text = "COLLECT TREASURE"
 				collectTreasureButton.BackgroundColor3 = THEME.Accent
-				collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				collectTreasureButton.TextColor3 = THEME.ActionText
 				collectTreasureButton.Active = true
 			end
 		end)
@@ -2560,7 +2562,7 @@ collectTreasureButton.MouseButton1Click:Connect(function()
 			if collectTreasureButton.Parent then
 				collectTreasureButton.Text = "COLLECT TREASURE"
 				collectTreasureButton.BackgroundColor3 = THEME.Accent
-				collectTreasureButton.TextColor3 = Color3.fromRGB(5, 15, 20)
+				collectTreasureButton.TextColor3 = THEME.ActionText
 				collectTreasureButton.Active = true
 			end
 		end)
