@@ -2094,6 +2094,7 @@ collectTreasureButton.BackgroundColor3 = THEME.Card
 collectTreasureButton.TextColor3 = THEME.TextMuted
 collectTreasureButton.Active = true
 
+
 local teleportZones = {
 	{
 		Name = "Dok's",
@@ -2144,13 +2145,14 @@ teleportPanel.Parent = teleportPage
 
 Instance.new("UICorner", teleportPanel).CornerRadius = UDim.new(0, 12)
 
-local teleportStroke = Instance.new("UIStroke", teleportPanel)
+local teleportStroke = Instance.new("UIStroke")
 teleportStroke.Color = THEME.Border
 teleportStroke.Thickness = 1
+teleportStroke.Parent = teleportPanel
 
 local teleportTitle = Instance.new("TextLabel")
 teleportTitle.Size = UDim2.new(1, -30, 0, 30)
-teleportTitle.Position = UDim2.new(0, 15, 0, 15)
+teleportTitle.Position = UDim2.new(0, 15, 0, 12)
 teleportTitle.BackgroundTransparency = 1
 teleportTitle.Text = "TELEPORT"
 teleportTitle.TextColor3 = THEME.Text
@@ -2160,8 +2162,8 @@ teleportTitle.TextXAlignment = Enum.TextXAlignment.Left
 teleportTitle.Parent = teleportPanel
 
 local teleportInfo = Instance.new("TextLabel")
-teleportInfo.Size = UDim2.new(1, -30, 0, 25)
-teleportInfo.Position = UDim2.new(0, 15, 0, 48)
+teleportInfo.Size = UDim2.new(1, -30, 0, 22)
+teleportInfo.Position = UDim2.new(0, 15, 0, 42)
 teleportInfo.BackgroundTransparency = 1
 teleportInfo.Text = "Select a location"
 teleportInfo.TextColor3 = THEME.TextMuted
@@ -2171,8 +2173,8 @@ teleportInfo.TextXAlignment = Enum.TextXAlignment.Left
 teleportInfo.Parent = teleportPanel
 
 local teleportList = Instance.new("ScrollingFrame")
-teleportList.Size = UDim2.new(1, -30, 1, -95)
-teleportList.Position = UDim2.new(0, 15, 0, 82)
+teleportList.Size = UDim2.new(1, -30, 1, -78)
+teleportList.Position = UDim2.new(0, 15, 0, 70)
 teleportList.BackgroundTransparency = 1
 teleportList.BorderSizePixel = 0
 teleportList.ScrollBarThickness = 4
@@ -2188,15 +2190,17 @@ teleportPadding.PaddingRight = UDim.new(0, 5)
 teleportPadding.Parent = teleportList
 
 local teleportLayout = Instance.new("UIListLayout")
-teleportLayout.Padding = UDim.new(0, 15)
+teleportLayout.Padding = UDim.new(0, 12)
 teleportLayout.SortOrder = Enum.SortOrder.LayoutOrder
 teleportLayout.Parent = teleportList
 
 local function createTeleportZone(zone, order)
+	local rowCount = math.ceil(#zone.Locations / 3)
+	local sectionHeight = 58 + (rowCount * 65) + 12
+
 	local section = Instance.new("Frame")
 	section.Name = zone.Name:gsub("%s+", "")
-	section.Size = UDim2.new(1, 0, 0, 0)
-	section.AutomaticSize = Enum.AutomaticSize.Y
+	section.Size = UDim2.new(1, 0, 0, sectionHeight)
 	section.BackgroundColor3 = THEME.Panel
 	section.BorderSizePixel = 0
 	section.LayoutOrder = order
@@ -2204,13 +2208,14 @@ local function createTeleportZone(zone, order)
 
 	Instance.new("UICorner", section).CornerRadius = UDim.new(0, 10)
 
-	local sectionStroke = Instance.new("UIStroke", section)
+	local sectionStroke = Instance.new("UIStroke")
 	sectionStroke.Color = THEME.Border
 	sectionStroke.Thickness = 1
+	sectionStroke.Parent = section
 
 	local zoneTitle = Instance.new("TextLabel")
 	zoneTitle.Size = UDim2.new(1, -24, 0, 30)
-	zoneTitle.Position = UDim2.new(0, 12, 0, 10)
+	zoneTitle.Position = UDim2.new(0, 12, 0, 8)
 	zoneTitle.BackgroundTransparency = 1
 	zoneTitle.Text = string.upper(zone.Name)
 	zoneTitle.TextColor3 = THEME.Accent
@@ -2220,17 +2225,15 @@ local function createTeleportZone(zone, order)
 	zoneTitle.Parent = section
 
 	local line = Instance.new("Frame")
-	line.Size = UDim2.new(1, -24, 0, 2)
+	line.Size = UDim2.new(1, -24, 0, 1)
 	line.Position = UDim2.new(0, 12, 0, 42)
 	line.BackgroundColor3 = THEME.Border
 	line.BorderSizePixel = 0
 	line.Parent = section
 
 	local gridFrame = Instance.new("Frame")
-	gridFrame.Name = "LocationGrid"
-	gridFrame.Size = UDim2.new(1, -24, 0, 0)
+	gridFrame.Size = UDim2.new(1, -24, 0, rowCount * 65)
 	gridFrame.Position = UDim2.new(0, 12, 0, 52)
-	gridFrame.AutomaticSize = Enum.AutomaticSize.Y
 	gridFrame.BackgroundTransparency = 1
 	gridFrame.Parent = section
 
@@ -2248,7 +2251,8 @@ local function createTeleportZone(zone, order)
 		local position = location[2]
 
 		local button = Instance.new("TextButton")
-		button.Name = locationName:gsub("%s+", "")
+		button.Name = "TeleportButton" .. index
+		button.Size = UDim2.new(0, 0, 0, 0)
 		button.BackgroundColor3 = THEME.Card
 		button.BorderSizePixel = 0
 		button.Text = ""
@@ -2258,13 +2262,14 @@ local function createTeleportZone(zone, order)
 
 		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 
-		local buttonStroke = Instance.new("UIStroke", button)
+		local buttonStroke = Instance.new("UIStroke")
 		buttonStroke.Color = THEME.Border
 		buttonStroke.Thickness = 1
+		buttonStroke.Parent = button
 
 		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, -12, 1, -8)
-		label.Position = UDim2.new(0, 6, 0, 4)
+		label.Size = UDim2.new(1, -10, 1, -8)
+		label.Position = UDim2.new(0, 5, 0, 4)
 		label.BackgroundTransparency = 1
 		label.Text = locationName
 		label.TextColor3 = THEME.Text
@@ -2315,7 +2320,7 @@ local function createTeleportZone(zone, order)
 			}):Play()
 
 			task.delay(0.2, function()
-				if button and button.Parent then
+				if button.Parent then
 					TweenService:Create(button, TweenInfo.new(0.15), {
 						BackgroundColor3 = THEME.Card
 					}):Play()
@@ -2333,23 +2338,18 @@ for index, zone in ipairs(teleportZones) do
 	createTeleportZone(zone, index)
 end
 
-teleportLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+local function updateTeleportCanvas()
 	teleportList.CanvasSize = UDim2.new(
 		0,
 		0,
 		0,
 		teleportLayout.AbsoluteContentSize.Y + 30
 	)
-end)
+end
 
-task.defer(function()
-	teleportList.CanvasSize = UDim2.new(
-		0,
-		0,
-		0,
-		teleportLayout.AbsoluteContentSize.Y + 30
-	)
-end)
+teleportLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateTeleportCanvas)
+
+task.defer(updateTeleportCanvas)
 
 
 local function switchTab(name)
