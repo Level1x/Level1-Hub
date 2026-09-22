@@ -2095,10 +2095,15 @@ collectTreasureButton.TextColor3 = THEME.TextMuted
 collectTreasureButton.Active = true
 
 local teleportLocations = {
-	{"Mr. Detok [Market Place]", Vector3.new(27.79836, 239.60448, 832.53687)},
-	{"Mr. Wiwok [Gear Shop]", Vector3.new(-36.18216, 237.68404, 838.65741)},
-	{"Fisherman", Vector3.new(-9.16492, 237.69075, 791.66632)},
-
+	{"[Spawn Vehicles] Ship Wright", Vector3.new(-41.66991, 237.69075, 771.37616)},
+	{"[Market Place] Mr.Detok ", Vector3.new(27.79836, 239.60448, 832.53687)},
+	{"[Gear Shop] Mr.Wiwok ", Vector3.new(-36.18216, 237.68404, 838.65741)},
+	{"[Enchantment] Skull Witch",Vector3.new(961.12146, 239.28392, 617.71057)},
+	{"Fisher Man", Vector3.new(-9.16492, 237.69075, 791.66632)},
+	{"Mr.Trappy", Vector3.new(-406.91226, 236.77856, 87.26193)},
+	{"White Beard",Vector3.new(-811.07007, 240.93538, 104.42932)},
+	
+	
 	{"ใส่ชื่อสถานที่ใหม่", Vector3.new(0, 0, 0)},
 }
 
