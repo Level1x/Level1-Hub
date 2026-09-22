@@ -2871,7 +2871,7 @@ for _, zone in ipairs(gamePassItems) do
 end
 
 local pendingGamePassButtons = {}
-local GAME_PASS_UI_TEST_MODE = true
+local GAME_PASS_UI_TEST_MODE = false
 
 
 -- ============================================================================
@@ -2965,7 +2965,7 @@ local gamePassInfo = Instance.new("TextLabel")
 gamePassInfo.Size = UDim2.new(1, -365, 0, 25)
 gamePassInfo.Position = UDim2.new(0, 15, 0, 43)
 gamePassInfo.BackgroundTransparency = 1
-gamePassInfo.Text = GAME_PASS_UI_TEST_MODE and "UI test mode: buttons preview the purchased state only" or "Choose an item to open its purchase prompt"
+gamePassInfo.Text = "Choose an item or watch marketplace events in real time"
 gamePassInfo.TextColor3 = THEME.TextMuted
 gamePassInfo.Font = FONT_REGULAR
 gamePassInfo.TextSize = 11
@@ -2976,7 +2976,7 @@ local gamePassVersion = Instance.new("TextLabel")
 gamePassVersion.Size = UDim2.new(0, 120, 0, 18)
 gamePassVersion.Position = UDim2.new(0, 15, 0, 63)
 gamePassVersion.BackgroundTransparency = 1
-gamePassVersion.Text = GAME_PASS_UI_TEST_MODE and "UI TEST MODE" or "LAYOUT FIX 2"
+gamePassVersion.Text = "MARKET LOG"
 gamePassVersion.TextColor3 = Color3.fromRGB(88, 123, 140)
 gamePassVersion.Font = FONT_BOLD
 gamePassVersion.TextSize = 9
@@ -3035,7 +3035,7 @@ purchaseLogStroke.Color = THEME.Border
 purchaseLogStroke.Thickness = 1
 
 local purchaseLogTitle = Instance.new("TextLabel")
-purchaseLogTitle.Size = UDim2.new(1, -28, 0, 24)
+purchaseLogTitle.Size = UDim2.new(1, -120, 0, 24)
 purchaseLogTitle.Position = UDim2.fromOffset(14, 10)
 purchaseLogTitle.BackgroundTransparency = 1
 purchaseLogTitle.Text = "PURCHASE EVENTS"
@@ -3044,6 +3044,26 @@ purchaseLogTitle.Font = FONT_BOLD
 purchaseLogTitle.TextSize = 12
 purchaseLogTitle.TextXAlignment = Enum.TextXAlignment.Left
 purchaseLogTitle.Parent = purchaseLogPanel
+
+local clearPurchaseLogButton = Instance.new("TextButton")
+clearPurchaseLogButton.AnchorPoint = Vector2.new(1, 0)
+clearPurchaseLogButton.Size = UDim2.new(0, 72, 0, 24)
+clearPurchaseLogButton.Position = UDim2.new(1, -14, 0, 10)
+clearPurchaseLogButton.BackgroundColor3 = THEME.Card
+clearPurchaseLogButton.BorderSizePixel = 0
+clearPurchaseLogButton.Text = "CLEAR"
+clearPurchaseLogButton.TextColor3 = THEME.TextMuted
+clearPurchaseLogButton.TextStrokeTransparency = 1
+clearPurchaseLogButton.Font = FONT_BOLD
+clearPurchaseLogButton.TextSize = 10
+clearPurchaseLogButton.AutoButtonColor = false
+clearPurchaseLogButton.Parent = purchaseLogPanel
+bindPressFeedback(clearPurchaseLogButton)
+Instance.new("UICorner", clearPurchaseLogButton).CornerRadius = UDim.new(0, 7)
+
+local clearPurchaseLogStroke = Instance.new("UIStroke", clearPurchaseLogButton)
+clearPurchaseLogStroke.Color = THEME.Border
+clearPurchaseLogStroke.Thickness = 1
 
 local purchaseLogList = Instance.new("ScrollingFrame")
 purchaseLogList.Name = "PurchaseLogList"
@@ -3064,7 +3084,7 @@ purchaseLogLayout.Parent = purchaseLogList
 
 local purchaseEventCount = 0
 
-local function addPurchaseEvent(item, purchased)
+local function addPurchaseEvent(item, purchased, eventType)
 	purchaseEventCount += 1
 
 	local entry = Instance.new("Frame")
@@ -3091,7 +3111,7 @@ local function addPurchaseEvent(item, purchased)
 	eventName.Size = UDim2.new(1, -140, 1, 0)
 	eventName.Position = UDim2.fromOffset(28, 0)
 	eventName.BackgroundTransparency = 1
-	eventName.Text = string.upper(item.Name)
+	eventName.Text = string.upper((eventType or "PRODUCT") .. " | " .. item.Name)
 	eventName.TextColor3 = THEME.Text
 	eventName.Font = FONT_BOLD
 	eventName.TextSize = 11
@@ -3111,6 +3131,17 @@ local function addPurchaseEvent(item, purchased)
 	eventStatus.TextXAlignment = Enum.TextXAlignment.Right
 	eventStatus.Parent = entry
 end
+
+clearPurchaseLogButton.MouseButton1Click:Connect(function()
+	for _, child in ipairs(purchaseLogList:GetChildren()) do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+
+	purchaseEventCount = 0
+	setGamePassStatus("EVENT LOG CLEARED", THEME.TextMuted)
+end)
 
 local function setPurchaseButtonState(item, text, color)
 	local buttonData = pendingGamePassButtons[item.Id]
@@ -3306,11 +3337,10 @@ MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, produc
 		return
 	end
 
-	local item = gamePassProductIndex[productId]
-
-	if not item then
-		return
-	end
+	local item = gamePassProductIndex[productId] or {
+		Name = "ID " .. tostring(productId),
+		Id = productId,
+	}
 
 	if purchased then
 		setGamePassStatus("PURCHASED " .. string.upper(item.Name), Color3.fromRGB(77, 225, 132))
@@ -3320,7 +3350,7 @@ MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, produc
 		setPurchaseButtonState(item, "BUY", Color3.fromRGB(255, 140, 140))
 	end
 
-	addPurchaseEvent(item, purchased)
+	addPurchaseEvent(item, purchased, "Product")
 
 	task.delay(1.4, function()
 		local buttonData = pendingGamePassButtons[productId]
@@ -3332,6 +3362,57 @@ MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, produc
 
 		pendingGamePassButtons[productId] = nil
 	end)
+end)
+
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(plr, gamePassId, purchased)
+	if plr ~= player then
+		return
+	end
+
+	local item = gamePassProductIndex[gamePassId] or {
+		Name = "ID " .. tostring(gamePassId),
+		Id = gamePassId,
+	}
+
+	setGamePassStatus(
+		(purchased and "GAMEPASS PURCHASED " or "GAMEPASS CANCELLED ") .. string.upper(item.Name),
+		purchased and Color3.fromRGB(77, 225, 132) or Color3.fromRGB(255, 140, 140)
+	)
+	addPurchaseEvent(item, purchased, "Gamepass")
+end)
+
+MarketplaceService.PromptBulkPurchaseFinished:Connect(function(userId, id, purchased)
+	if userId ~= player.UserId then
+		return
+	end
+
+	local item = {
+		Name = "ID " .. tostring(id),
+		Id = id,
+	}
+
+	setGamePassStatus(
+		purchased and "BULK PURCHASED" or "BULK CANCELLED",
+		purchased and Color3.fromRGB(77, 225, 132) or Color3.fromRGB(255, 140, 140)
+	)
+	addPurchaseEvent(item, purchased, "Bulk")
+end)
+
+MarketplaceService.PromptPurchaseFinished:Connect(function(userId, id, purchased)
+	if userId ~= player.UserId then
+		return
+	end
+
+	local item = {
+		Name = "ID " .. tostring(id),
+		Id = id,
+	}
+
+	setGamePassStatus(
+		purchased and "PURCHASED" or "PURCHASE CANCELLED",
+		purchased and Color3.fromRGB(77, 225, 132) or Color3.fromRGB(255, 140, 140)
+	)
+	addPurchaseEvent(item, purchased, "Purchase")
 end)
 
 registerPage("Game Pass", {gamePassPage})
