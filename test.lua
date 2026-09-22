@@ -1036,18 +1036,18 @@ local function createFishCard(data)
 			miniCamera.Parent = miniViewport
 			miniViewport.CurrentCamera = miniCamera
 
-			local miniMax =
-				math.max(
-					miniSize.X,
-					miniSize.Y,
-					miniSize.Z
-				)
-
+			-- Fit every fish to the existing viewport. The old fixed minimum
+			-- distance made physically small fish appear tiny in their cards.
+			local miniMax = math.max(miniSize.X, miniSize.Y, miniSize.Z)
+			local viewportAspect = 115 / 80
+			local halfFovTangent = math.tan(math.rad(miniCamera.FieldOfView * 0.5))
+			local distanceForHeight = miniSize.Y / (2 * halfFovTangent)
+			local distanceForWidth = miniSize.X / (2 * halfFovTangent * viewportAspect)
 			local distance =
-				math.max(
-					miniMax * 2.4,
-					2.5
-				)
+				math.max(distanceForHeight, distanceForWidth) * 1.12
+				+ miniSize.Z * 0.5
+
+			distance = math.max(distance, miniMax * 0.65, 0.05)
 
 			miniCamera.CFrame = CFrame.lookAt(
 				Vector3.new(0, miniMax * 0.03, distance),
