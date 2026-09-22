@@ -1028,6 +1028,7 @@ Instance.new("UICorner", catchButton).CornerRadius = UDim.new(0, 9)
 catchButtonStroke = Instance.new("UIStroke", catchButton)
 catchButtonStroke.Color = THEME.Border
 catchButtonStroke.Thickness = 1
+catchButtonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 catchButton.BackgroundColor3 = THEME.Card
 catchButton.TextColor3 = THEME.ActionTextMuted
@@ -1963,6 +1964,7 @@ Instance.new("UICorner", collectTreasureButton).CornerRadius = UDim.new(0, 9)
 collectTreasureButtonStroke = Instance.new("UIStroke", collectTreasureButton)
 collectTreasureButtonStroke.Color = THEME.Border
 collectTreasureButtonStroke.Thickness = 1
+collectTreasureButtonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 collectTreasureButton.BackgroundColor3 = THEME.Card
 collectTreasureButton.TextColor3 = THEME.ActionTextMuted
