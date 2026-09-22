@@ -12,29 +12,43 @@ if oldGui then
 	oldGui:Destroy()
 end
 
-local assets = ReplicatedStorage:WaitForChild("A__Assets")
-local fishFolder = assets:WaitForChild("Fish")
-local treasureFolder = assets:WaitForChild("Treasure")
+local fishFolder = ReplicatedStorage
+	:WaitForChild("A__Assets")
+	:WaitForChild("Fish")
 
-local shared = ReplicatedStorage:WaitForChild("Shared")
-local template = shared:WaitForChild("Data"):WaitForChild("Template")
+local treasureFolder = ReplicatedStorage
+	:WaitForChild("A__Assets")
+	:WaitForChild("Treasure")
 
-local fishDataModule = template:WaitForChild("Fish")
-local treasureDataModule = template:WaitForChild("Treasures")
+local fishDataModule = ReplicatedStorage
+	:WaitForChild("Shared")
+	:WaitForChild("Data")
+	:WaitForChild("Template")
+	:WaitForChild("Fish")
 
-local packages = ReplicatedStorage:WaitForChild("Packages")
-local knitIndex = packages:WaitForChild("_Index")
-local knit = knitIndex:WaitForChild("sleitnick_knit@1.7.0")
-local knitServices = knit:WaitForChild("knit"):WaitForChild("Services")
+local treasureDataModule = ReplicatedStorage
+	:WaitForChild("Shared")
+	:WaitForChild("Data")
+	:WaitForChild("Template")
+	:WaitForChild("Treasures")
 
-local fishService = knitServices:WaitForChild("FishService")
-local treasureService = knitServices:WaitForChild("TreasureService")
-
-local addToInventoryRF = fishService
+local addToInventoryRF = ReplicatedStorage
+	:WaitForChild("Packages")
+	:WaitForChild("_Index")
+	:WaitForChild("sleitnick_knit@1.7.0")
+	:WaitForChild("knit")
+	:WaitForChild("Services")
+	:WaitForChild("FishService")
 	:WaitForChild("RF")
 	:WaitForChild("AddToInventory")
 
-local treasureAddToInventoryRF = treasureService
+local treasureAddToInventoryRF = ReplicatedStorage
+	:WaitForChild("Packages")
+	:WaitForChild("_Index")
+	:WaitForChild("sleitnick_knit@1.7.0")
+	:WaitForChild("knit")
+	:WaitForChild("Services")
+	:WaitForChild("TreasureService")
 	:WaitForChild("RF")
 	:WaitForChild("AddToInventory")
 
@@ -51,8 +65,8 @@ local THEME = {
 
 	Text = Color3.fromRGB(245, 247, 255),
 	TextMuted = Color3.fromRGB(130, 136, 153),
-	Border = Color3.fromRGB(35, 39, 53),
 
+	Border = Color3.fromRGB(35, 39, 53),
 	Common = Color3.fromRGB(170, 175, 185),
 	Rare = Color3.fromRGB(65, 225, 120),
 	SuperRare = Color3.fromRGB(70, 190, 255),
@@ -62,7 +76,8 @@ local THEME = {
 	Arcana = Color3.fromRGB(90, 195, 120),
 	Eternal = Color3.fromRGB(75, 145, 160),
 	Apex = Color3.fromRGB(175, 55, 255),
-	Unknown = Color3.fromRGB(90, 95, 110)
+
+	Unknown = Color3.fromRGB(90, 95, 110),
 }
 
 local FONT_REGULAR = Enum.Font.Gotham
@@ -77,7 +92,569 @@ local RARITY_ORDER = {
 	NeverSeen = 6,
 	Arcana = 7,
 	Eternal = 8,
-	Apex = 9
+	Apex = 9,
+}
+
+local RARITY_DISPLAY = {
+	Common = "COMMON",
+	Rare = "RARE",
+	SuperRare = "SUPER RARE",
+	Mythical = "MYTHICAL",
+	Legendary = "LEGENDARY",
+	NeverSeen = "NEVER SEEN",
+	Arcana = "ARCANA",
+	Eternal = "ETERNAL",
+	Apex = "APEX",
+	Unknown = "UNKNOWN",
+}
+
+local TREASURE_RARITY_DISPLAY = {
+	Common = "COMMON",
+	Rare = "RARE",
+	SuperRare = "SUPER RARE",
+	Mythical = "MYTHICAL",
+	Legendary = "LEGENDARY",
+	NeverSeen = "NEVER SEEN",
+	Arcana = "ARCANA",
+	Eternal = "ETERNAL",
+	Apex = "APEX",
+	Unknown = "UNKNOWN",
+}
+
+local FishIndex = {}
+local TreasureIndex = {}
+
+local function loadFishIndex()
+	table.clear(FishIndex)
+
+	local success, data = pcall(function()
+		return require(fishDataModule)
+	end)
+
+	if not success then
+		warn("[Level1 Hub] Cannot require Fish Index:", data)
+		return
+	end
+
+	if type(data) ~= "table" then
+		warn("[Level1 Hub] Fish Index is not a table.")
+		return
+	end
+
+	for fishName, fishInfo in pairs(data) do
+		if type(fishInfo) == "table" and fishInfo.Rarity then
+			FishIndex[tostring(fishName)] = tostring(fishInfo.Rarity)
+		end
+	end
+end
+
+local function loadTreasureIndex()
+	table.clear(TreasureIndex)
+
+	local success, data = pcall(function()
+		return require(treasureDataModule)
+	end)
+
+	if not success then
+		warn("[Level1 Hub] Cannot require Treasure Index:", data)
+		return
+	end
+
+	if type(data) ~= "table" then
+		warn("[Level1 Hub] Treasure Index is not a table.")
+		return
+	end
+
+	for treasureName, treasureInfo in pairs(data) do
+		if type(treasureInfo) == "table" and treasureInfo.Rarity then
+			TreasureIndex[tostring(treasureName)] = tostring(treasureInfo.Rarity)
+		end
+	end
+end
+
+loadFishIndex()
+loadTreasureIndex()
+
+local function getFishRarity(fishObject)
+	local fishName
+
+	if typeof(fishObject) == "Instance" then
+		fishName = fishObject.Name
+	else
+		fishName = tostring(fishObject)
+	end
+
+	if FishIndex[fishName] then
+		return FishIndex[fishName]
+	end
+
+	if typeof(fishObject) == "Instance" then
+		local rarity = fishObject:GetAttribute("Rarity")
+
+		if rarity then
+			return tostring(rarity)
+		end
+	end
+
+	return "Unknown"
+end
+
+local function getTreasureRarity(treasureObject)
+	local treasureName
+
+	if typeof(treasureObject) == "Instance" then
+		treasureName = treasureObject.Name
+	else
+		treasureName = tostring(treasureObject)
+	end
+
+	if TreasureIndex[treasureName] then
+		return TreasureIndex[treasureName]
+	end
+
+	if typeof(treasureObject) == "Instance" then
+		local rarity = treasureObject:GetAttribute("Rarity")
+
+		if rarity then
+			return tostring(rarity)
+		end
+	end
+
+	return "Unknown"
+end
+
+local function getRarityColor(rarity)
+	return THEME[rarity] or THEME.Unknown
+end
+
+local fishList = {}
+
+for _, fish in ipairs(fishFolder:GetChildren()) do
+	if fish:IsA("Model") or fish:IsA("BasePart") then
+		local rarity = getFishRarity(fish)
+
+		table.insert(fishList, {
+			Object = fish,
+			Name = fish.Name,
+			Rarity = rarity,
+			Order = RARITY_ORDER[rarity] or 999,
+		})
+	end
+end
+
+table.sort(fishList, function(a, b)
+	if a.Order ~= b.Order then
+		return a.Order < b.Order
+	end
+
+	return string.lower(a.Name) < string.lower(b.Name)
+end)
+
+for index, data in ipairs(fishList) do
+	data.Order = index
+end
+
+local treasureList = {}
+
+for _, treasure in ipairs(treasureFolder:GetChildren()) do
+	if treasure:IsA("Model") or treasure:IsA("BasePart") then
+		local rarity = getTreasureRarity(treasure)
+
+		table.insert(treasureList, {
+			Object = treasure,
+			Name = treasure.Name,
+			Rarity = rarity,
+			Order = RARITY_ORDER[rarity] or 999,
+		})
+	end
+end
+
+table.sort(treasureList, function(a, b)
+	if a.Order ~= b.Order then
+		return a.Order < b.Order
+	end
+
+	return string.lower(a.Name) < string.lower(b.Name)
+end)
+
+for index, data in ipairs(treasureList) do
+	data.Order = index
+end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "FishCatcherGui"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = playerGui
+
+local frame = Instance.new("Frame")
+frame.Name = "Main"
+frame.Size = UDim2.new(0, 0, 0, 0)
+frame.Position = UDim2.new(0.5, 450, 0.5, -280)
+frame.AnchorPoint = Vector2.new(1, 0)
+frame.BackgroundColor3 = THEME.Background
+frame.BorderSizePixel = 0
+frame.ClipsDescendants = true
+frame.Parent = gui
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
+
+local frameStroke = Instance.new("UIStroke", frame)
+frameStroke.Color = THEME.Border
+frameStroke.Thickness = 1.5
+
+local normalSize = UDim2.new(0, 900, 0, 560)
+local minimizedSize = UDim2.new(0, 300, 0, 68)
+local isMinimized = false
+
+TweenService:Create(
+	frame,
+	TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+	{
+		Size = normalSize
+	}
+):Play()
+
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 68)
+header.BackgroundTransparency = 1
+header.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(0, 300, 0, 30)
+title.Position = UDim2.new(0, 25, 0, 10)
+title.BackgroundTransparency = 1
+title.Text = "🐟  LEVEL1 HUB"
+title.TextColor3 = THEME.Text
+title.Font = FONT_BOLD
+title.TextSize = 21
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+local gameTitle = Instance.new("TextLabel")
+gameTitle.Size = UDim2.new(0, 400, 0, 18)
+gameTitle.Position = UDim2.new(0, 27, 0, 38)
+gameTitle.BackgroundTransparency = 1
+gameTitle.Text = "BECOME A DEEP SEA EXPLORER"
+gameTitle.TextColor3 = THEME.TextMuted
+gameTitle.Font = FONT_REGULAR
+gameTitle.TextSize = 10
+gameTitle.TextXAlignment = Enum.TextXAlignment.Left
+gameTitle.Parent = header
+
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.new(0, 34, 0, 34)
+minimize.Position = UDim2.new(1, -88, 0, 16)
+minimize.Text = "—"
+minimize.BackgroundColor3 = THEME.Card
+minimize.TextColor3 = THEME.TextMuted
+minimize.Font = FONT_BOLD
+minimize.TextSize = 18
+minimize.BorderSizePixel = 0
+minimize.AutoButtonColor = false
+minimize.ZIndex = 5
+minimize.Parent = frame
+
+Instance.new("UICorner", minimize).CornerRadius = UDim.new(0, 9)
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 34, 0, 34)
+close.Position = UDim2.new(1, -48, 0, 16)
+close.Text = "X"
+close.BackgroundColor3 = THEME.Card
+close.TextColor3 = THEME.TextMuted
+close.Font = FONT_BOLD
+close.TextSize = 13
+close.BorderSizePixel = 0
+close.AutoButtonColor = false
+close.ZIndex = 5
+close.Parent = frame
+
+Instance.new("UICorner", close).CornerRadius = UDim.new(0, 9)
+
+minimize.MouseEnter:Connect(function()
+	TweenService:Create(minimize, TweenInfo.new(0.15), {
+		BackgroundColor3 = THEME.CardHover,
+		TextColor3 = THEME.Text
+	}):Play()
+end)
+
+minimize.MouseLeave:Connect(function()
+	TweenService:Create(minimize, TweenInfo.new(0.15), {
+		BackgroundColor3 = THEME.Card,
+		TextColor3 = THEME.TextMuted
+	}):Play()
+end)
+
+close.MouseEnter:Connect(function()
+	TweenService:Create(close, TweenInfo.new(0.15), {
+		BackgroundColor3 = Color3.fromRGB(220, 65, 75),
+		TextColor3 = Color3.new(1, 1, 1)
+	}):Play()
+end)
+
+close.MouseLeave:Connect(function()
+	TweenService:Create(close, TweenInfo.new(0.15), {
+		BackgroundColor3 = THEME.Card,
+		TextColor3 = THEME.TextMuted
+	}):Play()
+end)
+
+local tabBar = Instance.new("Frame")
+tabBar.Name = "TabBar"
+tabBar.Size = UDim2.new(1, -40, 0, 42)
+tabBar.Position = UDim2.new(0, 20, 0, 68)
+tabBar.BackgroundColor3 = THEME.Panel
+tabBar.BorderSizePixel = 0
+tabBar.Parent = frame
+
+Instance.new("UICorner", tabBar).CornerRadius = UDim.new(0, 10)
+
+local tabStroke = Instance.new("UIStroke", tabBar)
+tabStroke.Color = THEME.Border
+tabStroke.Thickness = 1
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+tabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+tabLayout.Padding = UDim.new(0, 5)
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Parent = tabBar
+
+local tabPadding = Instance.new("UIPadding")
+tabPadding.PaddingLeft = UDim.new(0, 5)
+tabPadding.PaddingRight = UDim.new(0, 5)
+tabPadding.PaddingTop = UDim.new(0, 5)
+tabPadding.PaddingBottom = UDim.new(0, 5)
+tabPadding.Parent = tabBar
+
+local tabs = {}
+local pages = {}
+local currentTab = "Fish"
+
+local function createTab(name, order)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(0, 120, 1, -10)
+	button.BackgroundColor3 = THEME.Card
+	button.BackgroundTransparency = 1
+	button.BorderSizePixel = 0
+	button.Text = string.upper(name)
+	button.TextColor3 = THEME.TextMuted
+	button.Font = FONT_BOLD
+	button.TextSize = 10
+	button.AutoButtonColor = false
+	button.LayoutOrder = order
+	button.Parent = tabBar
+
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 7)
+
+	tabs[name] = button
+
+	button.MouseEnter:Connect(function()
+		if currentTab ~= name then
+			TweenService:Create(button, TweenInfo.new(0.12), {
+				BackgroundTransparency = 0,
+				BackgroundColor3 = THEME.CardHover,
+				TextColor3 = THEME.Text
+			}):Play()
+		end
+	end)
+
+	button.MouseLeave:Connect(function()
+		if currentTab ~= name then
+			TweenService:Create(button, TweenInfo.new(0.12), {
+				BackgroundTransparency = 1,
+				TextColor3 = THEME.TextMuted
+			}):Play()
+		end
+	end)
+
+	return button
+end
+
+createTab("Fish", 1)
+createTab("Treasure", 2)
+createTab("Teleport", 3)
+
+local fishPage = Instance.new("Frame")
+fishPage.Name = "FishPage"
+fishPage.Size = UDim2.new(1, -40, 1, -130)
+fishPage.Position = UDim2.new(0, 20, 0, 120)
+fishPage.BackgroundTransparency = 1
+fishPage.BorderSizePixel = 0
+fishPage.Visible = true
+fishPage.Parent = frame
+
+pages.Fish = fishPage
+
+local treasurePage = Instance.new("Frame")
+treasurePage.Name = "TreasurePage"
+treasurePage.Size = UDim2.new(1, -40, 1, -130)
+treasurePage.Position = UDim2.new(0, 20, 0, 120)
+treasurePage.BackgroundTransparency = 1
+treasurePage.BorderSizePixel = 0
+treasurePage.Visible = false
+treasurePage.Parent = frame
+
+pages.Treasure = treasurePage
+
+local teleportPage = Instance.new("Frame")
+teleportPage.Name = "TeleportPage"
+teleportPage.Size = UDim2.new(1, -40, 1, -130)
+teleportPage.Position = UDim2.new(0, 20, 0, 120)
+teleportPage.BackgroundTransparency = 1
+teleportPage.BorderSizePixel = 0
+teleportPage.Visible = false
+teleportPage.Parent = frame
+
+pages.Teleport = teleportPage
+
+local dragging = false
+local dragStart
+local startPos
+
+local dragArea = Instance.new("TextButton")
+dragArea.Name = "DragArea"
+dragArea.Size = UDim2.new(1, -135, 1, 0)
+dragArea.Position = UDim2.new(0, 0, 0, 0)
+dragArea.BackgroundTransparency = 1
+dragArea.BorderSizePixel = 0
+dragArea.Text = ""
+dragArea.AutoButtonColor = false
+dragArea.ZIndex = 1
+dragArea.Parent = header
+
+title.ZIndex = 2
+gameTitle.ZIndex = 2
+
+dragArea.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if not dragging then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		local delta = input.Position - dragStart
+
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = false
+	end
+end)
+
+local function switchTab(name)
+	if not tabs[name] then
+		return
+	end
+
+	currentTab = name
+
+	for tabName, button in pairs(tabs) do
+		if tabName == name then
+			button.BackgroundTransparency = 0
+			button.BackgroundColor3 = THEME.CardSelected
+			button.TextColor3 = THEME.Accent
+		else
+			button.BackgroundTransparency = 1
+			button.TextColor3 = THEME.TextMuted
+		end
+	end
+
+	for pageName, page in pairs(pages) do
+		page.Visible = pageName == name
+	end
+end
+
+for name, button in pairs(tabs) do
+	button.MouseButton1Click:Connect(function()
+		switchTab(name)
+	end)
+end
+
+switchTab("Fish")
+
+minimize.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+
+	if isMinimized then
+		minimize.Text = "+"
+		gameTitle.Visible = false
+		tabBar.Visible = false
+
+		for _, page in pairs(pages) do
+			page.Visible = false
+		end
+
+		TweenService:Create(
+			frame,
+			TweenInfo.new(
+				0.3,
+				Enum.EasingStyle.Quad,
+				Enum.EasingDirection.Out
+			),
+			{
+				Size = minimizedSize
+			}
+		):Play()
+	else
+		minimize.Text = "—"
+		gameTitle.Visible = true
+		tabBar.Visible = true
+
+		switchTab(currentTab)
+
+		TweenService:Create(
+			frame,
+			TweenInfo.new(
+				0.3,
+				Enum.EasingStyle.Quad,
+				Enum.EasingDirection.Out
+			),
+			{
+				Size = normalSize
+			}
+		):Play()
+	end
+end)
+
+close.MouseButton1Click:Connect(function()
+	local tween = TweenService:Create(
+		frame,
+		TweenInfo.new(0.25, Enum.EasingStyle.Quad),
+		{
+			Size = UDim2.new(0, 0, 0, 0)
+		}
+	)
+
+	tween:Play()
+	tween.Completed:Wait()
+
+	gui:Destroy()
+end)	Apex = 9
 }
 
 local RARITY_DISPLAY = {
