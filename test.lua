@@ -444,7 +444,7 @@ tabPadding.Parent = tabBar
 local function createTab(name, order)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(0, 150, 1, 0)
+	button.Size = UDim2.new(0.25, -9, 1, 0)
 	button.BackgroundColor3 = THEME.Card
 	button.BackgroundTransparency = 1
 	button.BorderSizePixel = 0
@@ -2644,7 +2644,7 @@ end
 
 local teleportPage = Instance.new("Frame")
 teleportPage.Name = "TeleportPage"
-teleportPage.Size = UDim2.new(0, 860, 1, -130)
+teleportPage.Size = UDim2.new(1, -40, 1, -130)
 teleportPage.Position = UDim2.new(0, 20, 0, 120)
 teleportPage.BackgroundTransparency = 1
 teleportPage.Visible = false
@@ -2892,7 +2892,7 @@ end
 
 local gamePassPage = Instance.new("Frame")
 gamePassPage.Name = "GamePassPage"
-gamePassPage.Size = UDim2.new(0, 860, 1, -130)
+gamePassPage.Size = UDim2.new(1, -40, 1, -130)
 gamePassPage.Position = UDim2.new(0, 20, 0, 120)
 gamePassPage.BackgroundTransparency = 1
 gamePassPage.Visible = false
@@ -2925,7 +2925,7 @@ gamePassTitle.TextXAlignment = Enum.TextXAlignment.Left
 gamePassTitle.Parent = gamePassPanel
 
 local gamePassInfo = Instance.new("TextLabel")
-gamePassInfo.Size = UDim2.new(1, -30, 0, 25)
+gamePassInfo.Size = UDim2.new(1, -365, 0, 25)
 gamePassInfo.Position = UDim2.new(0, 15, 0, 43)
 gamePassInfo.BackgroundTransparency = 1
 gamePassInfo.Text = "Choose an item to open its purchase prompt"
@@ -2934,6 +2934,28 @@ gamePassInfo.Font = FONT_REGULAR
 gamePassInfo.TextSize = 11
 gamePassInfo.TextXAlignment = Enum.TextXAlignment.Left
 gamePassInfo.Parent = gamePassPanel
+
+local gamePassStatus = Instance.new("TextLabel")
+gamePassStatus.AnchorPoint = Vector2.new(1, 0)
+gamePassStatus.Size = UDim2.new(0, 320, 0, 25)
+gamePassStatus.Position = UDim2.new(1, -15, 0, 43)
+gamePassStatus.BackgroundTransparency = 1
+gamePassStatus.Text = ""
+gamePassStatus.TextColor3 = THEME.TextMuted
+gamePassStatus.Font = FONT_BOLD
+gamePassStatus.TextSize = 10
+gamePassStatus.TextXAlignment = Enum.TextXAlignment.Right
+gamePassStatus.Parent = gamePassPanel
+
+local function setGamePassStatus(text, color)
+	gamePassStatus.Text = text
+	gamePassStatus.TextColor3 = color or THEME.TextMuted
+	task.delay(1.8, function()
+		if gamePassStatus.Parent and gamePassStatus.Text == text then
+			gamePassStatus.Text = ""
+		end
+	end)
+end
 
 local gamePassContent = Instance.new("Frame")
 gamePassContent.Name = "GamePassContent"
@@ -2952,7 +2974,7 @@ gamePassZoneLayout.Parent = gamePassContent
 
 local function createGamePassButton(parent, item, accentColor, order)
 	local button = Instance.new("TextButton")
-	button.Name = item.Name
+	button.Name = "PurchaseButton" .. tostring(order)
 	button.LayoutOrder = order
 	button.BackgroundColor3 = THEME.Card
 	button.BorderSizePixel = 0
@@ -3020,13 +3042,18 @@ local function createGamePassButton(parent, item, accentColor, order)
 	end)
 
 	button.MouseButton1Click:Connect(function()
+		buyLabel.Text = "WAIT"
 		if promptMarketplacePurchase(item) then
 			buyLabel.Text = "OPEN"
+			setGamePassStatus("PURCHASE PROMPT OPENED", accentColor)
 			task.delay(1, function()
 				if buyLabel.Parent then
 					buyLabel.Text = "BUY"
 				end
 			end)
+		else
+			buyLabel.Text = "BUY"
+			setGamePassStatus("PROMPT FAILED", Color3.fromRGB(255, 120, 120))
 		end
 	end)
 
@@ -3035,7 +3062,7 @@ end
 
 local function createGamePassZone(zone, order)
 	local card = Instance.new("Frame")
-	card.Name = zone.Category .. "GamePassZone"
+	card.Name = "PurchaseZone" .. tostring(order)
 	card.LayoutOrder = order
 	card.BackgroundColor3 = Color3.fromRGB(14, 31, 46)
 	card.BorderSizePixel = 0
