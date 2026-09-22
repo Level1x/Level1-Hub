@@ -1582,3 +1582,463 @@ end)
 catchButton.BackgroundColor3 = THEME.Card
 catchButton.TextColor3 = THEME.TextMuted
 catchButton.Active = true
+
+
+treasureSidebar = Instance.new("Frame")
+treasureSidebar.Size = UDim2.new(0, 165, 1, -130)
+treasureSidebar.Position = UDim2.new(0, 20, 0, 120)
+treasureSidebar.BackgroundColor3 = THEME.Sidebar
+treasureSidebar.BorderSizePixel = 0
+treasureSidebar.Visible = false
+treasureSidebar.Parent = frame
+
+local treasureSidebarCorner = Instance.new("UICorner")
+treasureSidebarCorner.CornerRadius = UDim.new(0, 10)
+treasureSidebarCorner.Parent = treasureSidebar
+
+local treasureSidebarStroke = Instance.new("UIStroke")
+treasureSidebarStroke.Color = THEME.Border
+treasureSidebarStroke.Thickness = 1
+treasureSidebarStroke.Parent = treasureSidebar
+
+local treasureSidebarTitle = Instance.new("TextLabel")
+treasureSidebarTitle.Size = UDim2.new(1, -20, 0, 30)
+treasureSidebarTitle.Position = UDim2.new(0, 10, 0, 10)
+treasureSidebarTitle.BackgroundTransparency = 1
+treasureSidebarTitle.Text = "TREASURE"
+treasureSidebarTitle.TextColor3 = THEME.TextMuted
+treasureSidebarTitle.TextSize = 12
+treasureSidebarTitle.Font = FONT_BOLD
+treasureSidebarTitle.TextXAlignment = Enum.TextXAlignment.Left
+treasureSidebarTitle.Parent = treasureSidebar
+
+local treasureSearchBox = Instance.new("TextBox")
+treasureSearchBox.Size = UDim2.new(1, -20, 0, 36)
+treasureSearchBox.Position = UDim2.new(0, 10, 0, 48)
+treasureSearchBox.BackgroundColor3 = THEME.Card
+treasureSearchBox.BorderSizePixel = 0
+treasureSearchBox.PlaceholderText = "Search treasure..."
+treasureSearchBox.PlaceholderColor3 = THEME.TextMuted
+treasureSearchBox.Text = ""
+treasureSearchBox.TextColor3 = THEME.Text
+treasureSearchBox.TextSize = 12
+treasureSearchBox.Font = FONT_REGULAR
+treasureSearchBox.ClearTextOnFocus = false
+treasureSearchBox.Parent = treasureSidebar
+
+local treasureSearchCorner = Instance.new("UICorner")
+treasureSearchCorner.CornerRadius = UDim.new(0, 8)
+treasureSearchCorner.Parent = treasureSearchBox
+
+local treasureSearchStroke = Instance.new("UIStroke")
+treasureSearchStroke.Color = THEME.Border
+treasureSearchStroke.Thickness = 1
+treasureSearchStroke.Parent = treasureSearchBox
+
+local treasureCategoryList = Instance.new("ScrollingFrame")
+treasureCategoryList.Size = UDim2.new(1, -20, 1, -105)
+treasureCategoryList.Position = UDim2.new(0, 10, 0, 95)
+treasureCategoryList.BackgroundTransparency = 1
+treasureCategoryList.BorderSizePixel = 0
+treasureCategoryList.ScrollBarThickness = 3
+treasureCategoryList.ScrollBarImageColor3 = THEME.Accent
+treasureCategoryList.CanvasSize = UDim2.new(0, 0, 0, 0)
+treasureCategoryList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+treasureCategoryList.Parent = treasureSidebar
+
+local treasureCategoryLayout = Instance.new("UIListLayout")
+treasureCategoryLayout.Padding = UDim.new(0, 6)
+treasureCategoryLayout.SortOrder = Enum.SortOrder.LayoutOrder
+treasureCategoryLayout.Parent = treasureCategoryList
+
+treasureContent = Instance.new("Frame")
+treasureContent.Size = UDim2.new(0, 470, 1, -130)
+treasureContent.Position = UDim2.new(0, 195, 0, 120)
+treasureContent.BackgroundColor3 = THEME.Panel
+treasureContent.BorderSizePixel = 0
+treasureContent.Visible = false
+treasureContent.Parent = frame
+
+local treasureContentCorner = Instance.new("UICorner")
+treasureContentCorner.CornerRadius = UDim.new(0, 10)
+treasureContentCorner.Parent = treasureContent
+
+local treasureContentStroke = Instance.new("UIStroke")
+treasureContentStroke.Color = THEME.Border
+treasureContentStroke.Thickness = 1
+treasureContentStroke.Parent = treasureContent
+
+local treasureContentTitle = Instance.new("TextLabel")
+treasureContentTitle.Size = UDim2.new(1, -30, 0, 34)
+treasureContentTitle.Position = UDim2.new(0, 15, 0, 12)
+treasureContentTitle.BackgroundTransparency = 1
+treasureContentTitle.Text = "Treasure Collection"
+treasureContentTitle.TextColor3 = THEME.Text
+treasureContentTitle.TextSize = 16
+treasureContentTitle.Font = FONT_BOLD
+treasureContentTitle.TextXAlignment = Enum.TextXAlignment.Left
+treasureContentTitle.Parent = treasureContent
+
+local treasureGrid = Instance.new("ScrollingFrame")
+treasureGrid.Size = UDim2.new(1, -30, 1, -65)
+treasureGrid.Position = UDim2.new(0, 15, 0, 52)
+treasureGrid.BackgroundTransparency = 1
+treasureGrid.BorderSizePixel = 0
+treasureGrid.ScrollBarThickness = 4
+treasureGrid.ScrollBarImageColor3 = THEME.Accent
+treasureGrid.CanvasSize = UDim2.new(0, 0, 0, 0)
+treasureGrid.AutomaticCanvasSize = Enum.AutomaticSize.Y
+treasureGrid.Parent = treasureContent
+
+local treasureGridLayout = Instance.new("UIGridLayout")
+treasureGridLayout.CellSize = UDim2.new(0, 138, 0, 165)
+treasureGridLayout.CellPadding = UDim2.new(0, 8, 0, 8)
+treasureGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+treasureGridLayout.Parent = treasureGrid
+
+local treasurePreviewPanel = Instance.new("Frame")
+treasurePreviewPanel.Size = UDim2.new(0, 195, 1, -130)
+treasurePreviewPanel.Position = UDim2.new(1, -215, 0, 120)
+treasurePreviewPanel.BackgroundColor3 = THEME.Panel
+treasurePreviewPanel.BorderSizePixel = 0
+treasurePreviewPanel.Visible = false
+treasurePreviewPanel.Parent = frame
+
+local treasurePreviewCorner = Instance.new("UICorner")
+treasurePreviewCorner.CornerRadius = UDim.new(0, 10)
+treasurePreviewCorner.Parent = treasurePreviewPanel
+
+local treasurePreviewStroke = Instance.new("UIStroke")
+treasurePreviewStroke.Color = THEME.Border
+treasurePreviewStroke.Thickness = 1
+treasurePreviewStroke.Parent = treasurePreviewPanel
+
+local treasurePreviewTitle = Instance.new("TextLabel")
+treasurePreviewTitle.Size = UDim2.new(1, -20, 0, 32)
+treasurePreviewTitle.Position = UDim2.new(0, 10, 0, 10)
+treasurePreviewTitle.BackgroundTransparency = 1
+treasurePreviewTitle.Text = "TREASURE PREVIEW"
+treasurePreviewTitle.TextColor3 = THEME.TextMuted
+treasurePreviewTitle.TextSize = 11
+treasurePreviewTitle.Font = FONT_BOLD
+treasurePreviewTitle.TextXAlignment = Enum.TextXAlignment.Left
+treasurePreviewTitle.Parent = treasurePreviewPanel
+
+local treasurePreviewViewport = Instance.new("ViewportFrame")
+treasurePreviewViewport.Size = UDim2.new(1, -20, 0, 170)
+treasurePreviewViewport.Position = UDim2.new(0, 10, 0, 48)
+treasurePreviewViewport.BackgroundColor3 = THEME.Card
+treasurePreviewViewport.BorderSizePixel = 0
+treasurePreviewViewport.Parent = treasurePreviewPanel
+
+local treasurePreviewViewportCorner = Instance.new("UICorner")
+treasurePreviewViewportCorner.CornerRadius = UDim.new(0, 8)
+treasurePreviewViewportCorner.Parent = treasurePreviewViewport
+
+local treasurePreviewCamera = Instance.new("Camera")
+treasurePreviewCamera.Parent = treasurePreviewViewport
+treasurePreviewViewport.CurrentCamera = treasurePreviewCamera
+
+local treasurePreviewName = Instance.new("TextLabel")
+treasurePreviewName.Size = UDim2.new(1, -20, 0, 35)
+treasurePreviewName.Position = UDim2.new(0, 10, 0, 228)
+treasurePreviewName.BackgroundTransparency = 1
+treasurePreviewName.Text = "Select a treasure"
+treasurePreviewName.TextColor3 = THEME.Text
+treasurePreviewName.TextSize = 14
+treasurePreviewName.Font = FONT_BOLD
+treasurePreviewName.TextWrapped = true
+treasurePreviewName.Parent = treasurePreviewPanel
+
+local treasurePreviewRarity = Instance.new("TextLabel")
+treasurePreviewRarity.Size = UDim2.new(1, -20, 0, 24)
+treasurePreviewRarity.Position = UDim2.new(0, 10, 0, 265)
+treasurePreviewRarity.BackgroundTransparency = 1
+treasurePreviewRarity.Text = ""
+treasurePreviewRarity.TextColor3 = THEME.TextMuted
+treasurePreviewRarity.TextSize = 12
+treasurePreviewRarity.Font = FONT_BOLD
+treasurePreviewRarity.Parent = treasurePreviewPanel
+
+local treasureButtons = {}
+local selectedTreasure = nil
+local treasureCurrentCategory = "All"
+
+local function getTreasureRarityColor(rarity)
+	return rarityColors[rarity] or THEME.Unknown
+end
+
+local function updateTreasurePreview(treasureName, rarity)
+	treasurePreviewName.Text = treasureName or "Select a treasure"
+	treasurePreviewRarity.Text = rarity or ""
+	treasurePreviewRarity.TextColor3 = getTreasureRarityColor(rarity)
+
+	for _, child in ipairs(treasurePreviewViewport:GetChildren()) do
+		if child:IsA("Model") or child:IsA("BasePart") then
+			child:Destroy()
+		end
+	end
+
+	if not treasureName then
+		return
+	end
+
+	local source = treasureFolder:FindFirstChild(treasureName)
+
+	if not source then
+		return
+	end
+
+	local clone = source:Clone()
+	clone.Parent = treasurePreviewViewport
+
+	local model = clone
+
+	if clone:IsA("BasePart") then
+		local modelWrapper = Instance.new("Model")
+		modelWrapper.Parent = treasurePreviewViewport
+		clone.Parent = modelWrapper
+		model = modelWrapper
+	end
+
+	if not model:IsA("Model") then
+		return
+	end
+
+	local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+
+	if not primaryPart then
+		return
+	end
+
+	model.PrimaryPart = primaryPart
+	model:PivotTo(CFrame.new(0, 0, 0))
+
+	local _, size = model:GetBoundingBox()
+	local maxSize = math.max(size.X, size.Y, size.Z)
+
+	treasurePreviewCamera.CFrame = CFrame.new(
+		0,
+		size.Y * 0.25,
+		math.max(maxSize * 2.5, 5)
+	) * CFrame.Angles(
+		math.rad(-8),
+		0,
+		0
+	)
+end
+
+local function createTreasureCard(data)
+	local card = Instance.new("TextButton")
+	card.Size = UDim2.new(0, 138, 0, 165)
+	card.BackgroundColor3 = THEME.Card
+	card.BorderSizePixel = 0
+	card.AutoButtonColor = false
+	card.Text = ""
+	card.Parent = treasureGrid
+
+	local cardCorner = Instance.new("UICorner")
+	cardCorner.CornerRadius = UDim.new(0, 9)
+	cardCorner.Parent = card
+
+	local cardStroke = Instance.new("UIStroke")
+	cardStroke.Color = THEME.Border
+	cardStroke.Thickness = 1
+	cardStroke.Parent = card
+
+	local viewport = Instance.new("ViewportFrame")
+	viewport.Size = UDim2.new(1, -12, 0, 100)
+	viewport.Position = UDim2.new(0, 6, 0, 6)
+	viewport.BackgroundColor3 = THEME.Panel
+	viewport.BorderSizePixel = 0
+	viewport.Parent = card
+
+	local viewportCorner = Instance.new("UICorner")
+	viewportCorner.CornerRadius = UDim.new(0, 7)
+	viewportCorner.Parent = viewport
+
+	local camera = Instance.new("Camera")
+	camera.Parent = viewport
+	viewport.CurrentCamera = camera
+
+	local source = treasureFolder:FindFirstChild(data.Name)
+
+	if source then
+		local clone = source:Clone()
+		clone.Parent = viewport
+
+		local model = clone
+
+		if clone:IsA("BasePart") then
+			local wrapper = Instance.new("Model")
+			wrapper.Parent = viewport
+			clone.Parent = wrapper
+			model = wrapper
+		end
+
+		if model:IsA("Model") then
+			local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+
+			if primaryPart then
+				model.PrimaryPart = primaryPart
+				model:PivotTo(CFrame.new(0, 0, 0))
+
+				local _, size = model:GetBoundingBox()
+				local maxSize = math.max(size.X, size.Y, size.Z)
+
+				camera.CFrame = CFrame.new(
+					0,
+					size.Y * 0.2,
+					math.max(maxSize * 2.2, 4)
+				) * CFrame.Angles(
+					math.rad(-8),
+					0,
+					0
+				)
+			end
+		end
+	end
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -12, 0, 28)
+	nameLabel.Position = UDim2.new(0, 6, 0, 108)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = data.Name
+	nameLabel.TextColor3 = THEME.Text
+	nameLabel.TextSize = 11
+	nameLabel.Font = FONT_BOLD
+	nameLabel.TextWrapped = true
+	nameLabel.Parent = card
+
+	local rarityLabel = Instance.new("TextLabel")
+	rarityLabel.Size = UDim2.new(1, -12, 0, 20)
+	rarityLabel.Position = UDim2.new(0, 6, 0, 138)
+	rarityLabel.BackgroundTransparency = 1
+	rarityLabel.Text = data.Rarity or "Unknown"
+	rarityLabel.TextColor3 = getTreasureRarityColor(data.Rarity)
+	rarityLabel.TextSize = 10
+	rarityLabel.Font = FONT_BOLD
+	rarityLabel.Parent = card
+
+	treasureButtons[data.Name] = card
+
+	card.MouseEnter:Connect(function()
+		if selectedTreasure ~= data.Name then
+			card.BackgroundColor3 = THEME.CardHover
+		end
+	end)
+
+	card.MouseLeave:Connect(function()
+		if selectedTreasure ~= data.Name then
+			card.BackgroundColor3 = THEME.Card
+		end
+	end)
+
+	card.MouseButton1Click:Connect(function()
+		selectedTreasure = data.Name
+
+		for _, button in pairs(treasureButtons) do
+			button.BackgroundColor3 = THEME.Card
+		end
+
+		card.BackgroundColor3 = THEME.CardSelected
+
+		updateTreasurePreview(data.Name, data.Rarity)
+	end)
+
+	return card
+end
+
+for _, data in ipairs(treasureList) do
+	createTreasureCard(data)
+end
+
+local treasureCategories = {
+	"All",
+	"Common",
+	"Rare",
+	"Super Rare",
+	"Mythical",
+	"Legendary",
+	"Never Seen",
+	"Arcana",
+	"Eternal",
+	"Apex"
+}
+
+local function filterTreasure()
+	local search = string.lower(treasureSearchBox.Text)
+
+	for _, data in ipairs(treasureList) do
+		local card = treasureButtons[data.Name]
+
+		if card then
+			local matchesSearch = search == ""
+				or string.find(string.lower(data.Name), search, 1, true)
+
+			local matchesCategory = treasureCurrentCategory == "All"
+				or data.Rarity == treasureCurrentCategory
+
+			card.Visible = matchesSearch and matchesCategory
+		end
+	end
+end
+
+local treasureCategoryButtons = {}
+
+local function updateTreasureCategoryVisuals()
+	for category, button in pairs(treasureCategoryButtons) do
+		if category == treasureCurrentCategory then
+			button.BackgroundColor3 = THEME.CardSelected
+			button.TextColor3 = THEME.Accent
+		else
+			button.BackgroundColor3 = THEME.Card
+			button.TextColor3 = THEME.TextMuted
+		end
+	end
+end
+
+for index, category in ipairs(treasureCategories) do
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -4, 0, 32)
+	button.BackgroundColor3 = THEME.Card
+	button.BorderSizePixel = 0
+	button.AutoButtonColor = false
+	button.Text = category
+	button.TextColor3 = THEME.TextMuted
+	button.TextSize = 11
+	button.Font = FONT_BOLD
+	button.LayoutOrder = index
+	button.Parent = treasureCategoryList
+
+	local buttonCorner = Instance.new("UICorner")
+	buttonCorner.CornerRadius = UDim.new(0, 7)
+	buttonCorner.Parent = button
+
+	treasureCategoryButtons[category] = button
+
+	button.MouseEnter:Connect(function()
+		if category ~= treasureCurrentCategory then
+			button.BackgroundColor3 = THEME.CardHover
+		end
+	end)
+
+	button.MouseLeave:Connect(function()
+		if category ~= treasureCurrentCategory then
+			button.BackgroundColor3 = THEME.Card
+		end
+	end)
+
+	button.MouseButton1Click:Connect(function()
+		treasureCurrentCategory = category
+		updateTreasureCategoryVisuals()
+		filterTreasure()
+	end)
+end
+
+treasureSearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+	filterTreasure()
+end)
+
+updateTreasureCategoryVisuals()
+filterTreasure()
