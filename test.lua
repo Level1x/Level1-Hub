@@ -157,8 +157,9 @@ gui.Parent = playerGui
 local frame = Instance.new("Frame")
 frame.Name = "Main"
 frame.Size = UDim2.new(0, 0, 0, 0)
-frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
+-- Keep the top-right corner fixed while the window opens, minimizes, and expands.
+frame.Position = UDim2.new(0.5, 450, 0.5, -280)
+frame.AnchorPoint = Vector2.new(1, 0)
 frame.BackgroundColor3 = THEME.Background
 frame.BorderSizePixel = 0
 frame.ClipsDescendants = true
@@ -202,7 +203,8 @@ addSurfaceGradient(brandMark, 90)
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(0, 165, 0, 30)
-title.Position = UDim2.new(0, 46, 0, 10)
+title.AnchorPoint = Vector2.new(0, 0.5)
+title.Position = UDim2.new(0, 46, 0, 25)
 title.BackgroundTransparency = 1
 title.Text = "LEVEL1 HUB"
 title.TextColor3 = THEME.Text
@@ -345,9 +347,9 @@ end)
 minimize.MouseButton1Click:Connect(function()
 	isMinimized = not isMinimized
 
-	-- Center the title in the 68px header while the subtitle is hidden.
+	-- Use the label's center as the reference so the minimized title is truly centered.
 	TweenService:Create(title, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Position = isMinimized and UDim2.new(0, 46, 0.5, -15) or UDim2.new(0, 46, 0, 10)
+		Position = isMinimized and UDim2.new(0, 46, 0, 34) or UDim2.new(0, 46, 0, 25)
 	}):Play()
 
 	if isMinimized then
