@@ -2708,21 +2708,9 @@ local function createZoneCard(zone, zoneOrder)
 	cardStroke.Color = THEME.Border
 	cardStroke.Thickness = 1
 
-	local zoneNumber = Instance.new("TextLabel")
-	zoneNumber.Size = UDim2.fromOffset(28, 28)
-	zoneNumber.Position = UDim2.fromOffset(14, 13)
-	zoneNumber.BackgroundColor3 = THEME.CardSelected
-	zoneNumber.BorderSizePixel = 0
-	zoneNumber.Text = string.format("%02d", zoneOrder)
-	zoneNumber.TextColor3 = THEME.Text
-	zoneNumber.Font = FONT_BOLD
-	zoneNumber.TextSize = 10
-	zoneNumber.Parent = card
-	Instance.new("UICorner", zoneNumber).CornerRadius = UDim.new(0, 8)
-
 	local zoneTitle = Instance.new("TextLabel")
-	zoneTitle.Size = UDim2.new(1, -58, 0, 28)
-	zoneTitle.Position = UDim2.fromOffset(50, 13)
+	zoneTitle.Size = UDim2.new(1, -28, 0, 28)
+	zoneTitle.Position = UDim2.fromOffset(14, 13)
 	zoneTitle.BackgroundTransparency = 1
 	zoneTitle.Text = string.upper(zone.Name)
 	zoneTitle.TextColor3 = THEME.Text
@@ -2740,11 +2728,17 @@ local function createZoneCard(zone, zoneOrder)
 	divider.BorderSizePixel = 0
 	divider.Parent = card
 
-	local locationList = Instance.new("Frame")
+	local locationList = Instance.new("ScrollingFrame")
 	locationList.Name = "Locations"
 	locationList.Size = UDim2.new(1, -28, 1, -68)
 	locationList.Position = UDim2.fromOffset(14, 61)
 	locationList.BackgroundTransparency = 1
+	locationList.BorderSizePixel = 0
+	locationList.CanvasSize = UDim2.new(0, 0, 0, 0)
+	locationList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	locationList.ScrollBarThickness = 2
+	locationList.ScrollBarImageColor3 = Color3.fromRGB(88, 123, 140)
+	locationList.ScrollBarImageTransparency = 0.25
 	locationList.Parent = card
 
 	local locationLayout = Instance.new("UIListLayout")
@@ -2762,7 +2756,7 @@ local function createTeleportButton(parent, name, position, order)
 	button.LayoutOrder = order
 	button.BackgroundColor3 = THEME.Card
 	button.BorderSizePixel = 0
-	button.Text = "   " .. name
+	button.Text = name
 	button.TextColor3 = THEME.Text
 	button.Font = FONT_REGULAR
 	button.TextSize = 11
@@ -2772,19 +2766,16 @@ local function createTeleportButton(parent, name, position, order)
 	button.Parent = parent
 	bindPressFeedback(button)
 
+	local textPadding = Instance.new("UIPadding")
+	textPadding.PaddingLeft = UDim.new(0, 14)
+	textPadding.PaddingRight = UDim.new(0, 10)
+	textPadding.Parent = button
+
 	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 
 	local stroke = Instance.new("UIStroke", button)
 	stroke.Color = THEME.Border
 	stroke.Thickness = 1
-
-	local marker = Instance.new("Frame")
-	marker.Size = UDim2.fromOffset(4, 16)
-	marker.Position = UDim2.new(0, 10, 0.5, -8)
-	marker.BackgroundColor3 = Color3.fromRGB(118, 157, 174)
-	marker.BorderSizePixel = 0
-	marker.Parent = button
-	Instance.new("UICorner", marker).CornerRadius = UDim.new(1, 0)
 
 	button.MouseEnter:Connect(function()
 		TweenService:Create(button, TweenInfo.new(0.12), {
@@ -2794,10 +2785,6 @@ local function createTeleportButton(parent, name, position, order)
 
 		TweenService:Create(stroke, TweenInfo.new(0.12), {
 			Color = Color3.fromRGB(73, 112, 130)
-		}):Play()
-
-		TweenService:Create(marker, TweenInfo.new(0.12), {
-			BackgroundColor3 = THEME.Accent
 		}):Play()
 	end)
 
@@ -2809,10 +2796,6 @@ local function createTeleportButton(parent, name, position, order)
 
 		TweenService:Create(stroke, TweenInfo.new(0.12), {
 			Color = THEME.Border
-		}):Play()
-
-		TweenService:Create(marker, TweenInfo.new(0.12), {
-			BackgroundColor3 = Color3.fromRGB(118, 157, 174)
 		}):Play()
 	end)
 
