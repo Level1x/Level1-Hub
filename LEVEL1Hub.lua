@@ -2095,16 +2095,18 @@ collectTreasureButton.TextColor3 = THEME.TextMuted
 collectTreasureButton.Active = true
 
 local teleportLocations = {
-	{"[Spawn Vehicles] Dock's", Vector3.new(-41.66991, 237.69075, 771.37616)},
+	{"[Spawn Vehicles] Shipwright", Vector3.new(-41.66991, 237.69075, 771.37616)},
 	{"[Market Place] Mr.Detok", Vector3.new(27.79836, 239.60448, 832.53687)},
 	{"[Gear Shop] Mr.Wiwok", Vector3.new(-36.18216, 237.68404, 838.65741)},
 	{"[Gear Shop] Unc.Nathan Lee", Vector3.new(220.21776, 242.70007, -1214.91553)},
+	{"[Skill Upgrade]",Vector3.new(-40.92221, 237.69075, 794.19263)},
 	{"[Enchantment Store] Eldrin Stone Seller",Vector3.new(974.72198, 263.96902, -1013.63672)},
 	{"[Enchantment] Skull Witch",Vector3.new(961.12146, 239.28392, 617.71057)},
 	{"Fisher Man", Vector3.new(-9.16492, 237.69075, 791.66632)},
 	{"Mr.Trappy", Vector3.new(-406.91226, 236.77856, 87.26193)},
 	{"White Beard",Vector3.new(-811.07007, 240.93538, 104.42932)},
 	{"Captain Samoodra",Vector3.new(473.40494, 233.29327, -762.24146)},
+	{"Dove The Diver",Vector3.new(277.70627, 238.83917, -346.61185)},
 	
 	{"[Spawn Vehicles] Frostfire Isies",Vector3.new(12.74754, 243.60753, -943.30499)},
 	{"[Market Place] Tog the Tough",Vector3.new(20.00410, 243.02095, -916.92664)},
