@@ -1101,7 +1101,7 @@ local function createFishCard(data)
 		local miniCF, miniSize = centerVisiblePreviewObject(miniClone)
 
 		if miniCF and miniSize then
-			local miniRotation = CFrame.Angles(0, math.rad(90), 0)
+			local miniRotation = CFrame.Angles(0, math.rad(180), 0)
 
 			if miniClone:IsA("Model") then
 				miniClone:PivotTo(miniRotation * miniClone:GetPivot())
