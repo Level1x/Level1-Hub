@@ -1,4 +1,4 @@
--- LEVEL1 HUB | CORE / MAIN UI > FISH > TREASURE > TELEPORT
+-- LEVEL1 HUB | CORE / MAIN UI > FISH > TREASURE > TELEPORT > GAME PASS
 
 -- ============================================================================
 -- PART 1 : CORE / MAIN UI
@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
 
 
 -- ============================================================================
@@ -407,7 +408,7 @@ end)
 
 
 -- ============================================================================
--- Tab Bar | Fish, Treasure, Teleport
+-- Tab Bar | Fish, Treasure, Teleport, Game Pass
 -- ============================================================================
 
 tabBar = Instance.new("Frame")
@@ -495,6 +496,7 @@ end
 createTab("Fish", 1)
 createTab("Treasure", 2)
 createTab("Teleport", 3)
+createTab("Game Pass", 4)
 
 
 -- ============================================================================
@@ -2826,3 +2828,316 @@ for zoneOrder, zone in ipairs(teleportZones) do
 end
 
 registerPage("Teleport", {teleportPage})
+
+
+-- ============================================================================
+-- PART 5 : GAME PASS
+-- ============================================================================
+
+
+-- ============================================================================
+-- Game Pass Data
+-- ============================================================================
+
+local gamePassItems = {
+	-- Add fixed buttons here, for example:
+	-- {Name = "VIP", Id = 123456789},
+}
+
+
+-- ============================================================================
+-- Game Pass Functions
+-- ============================================================================
+
+local function promptGamePassPurchase(gamePassId)
+	local id = tonumber(gamePassId)
+
+	if not id then
+		return false
+	end
+
+	local ok = pcall(function()
+		MarketplaceService:PromptGamePassPurchase(player, id)
+	end)
+
+	return ok
+end
+
+
+-- ============================================================================
+-- Game Pass UI
+-- ============================================================================
+
+local gamePassPage = Instance.new("Frame")
+gamePassPage.Name = "GamePassPage"
+gamePassPage.Size = UDim2.new(0, 860, 1, -130)
+gamePassPage.Position = UDim2.new(0, 20, 0, 120)
+gamePassPage.BackgroundTransparency = 1
+gamePassPage.Visible = false
+gamePassPage.Parent = frame
+
+pages["Game Pass"] = gamePassPage
+
+local gamePassPanel = Instance.new("Frame")
+gamePassPanel.Size = UDim2.new(1, 0, 1, 0)
+gamePassPanel.BackgroundColor3 = THEME.Sidebar
+gamePassPanel.BorderSizePixel = 0
+gamePassPanel.Parent = gamePassPage
+
+Instance.new("UICorner", gamePassPanel).CornerRadius = UDim.new(0, 12)
+addSurfaceGradient(gamePassPanel, 80)
+
+local gamePassStroke = Instance.new("UIStroke", gamePassPanel)
+gamePassStroke.Color = THEME.Border
+gamePassStroke.Thickness = 1
+
+local gamePassTitle = Instance.new("TextLabel")
+gamePassTitle.Size = UDim2.new(1, -30, 0, 30)
+gamePassTitle.Position = UDim2.new(0, 15, 0, 15)
+gamePassTitle.BackgroundTransparency = 1
+gamePassTitle.Text = "GAME PASS"
+gamePassTitle.TextColor3 = THEME.Text
+gamePassTitle.Font = FONT_BOLD
+gamePassTitle.TextSize = 16
+gamePassTitle.TextXAlignment = Enum.TextXAlignment.Left
+gamePassTitle.Parent = gamePassPanel
+
+local gamePassInfo = Instance.new("TextLabel")
+gamePassInfo.Size = UDim2.new(1, -30, 0, 25)
+gamePassInfo.Position = UDim2.new(0, 15, 0, 43)
+gamePassInfo.BackgroundTransparency = 1
+gamePassInfo.Text = "Enter a Game Pass ID, then open the purchase prompt"
+gamePassInfo.TextColor3 = THEME.TextMuted
+gamePassInfo.Font = FONT_REGULAR
+gamePassInfo.TextSize = 11
+gamePassInfo.TextXAlignment = Enum.TextXAlignment.Left
+gamePassInfo.Parent = gamePassPanel
+
+local gamePassContent = Instance.new("Frame")
+gamePassContent.Name = "GamePassContent"
+gamePassContent.Size = UDim2.new(1, -30, 1, -88)
+gamePassContent.Position = UDim2.new(0, 15, 0, 73)
+gamePassContent.BackgroundTransparency = 1
+gamePassContent.Parent = gamePassPanel
+
+local gamePassLayout = Instance.new("UIListLayout")
+gamePassLayout.Padding = UDim.new(0, 12)
+gamePassLayout.SortOrder = Enum.SortOrder.LayoutOrder
+gamePassLayout.Parent = gamePassContent
+
+local quickCard = Instance.new("Frame")
+quickCard.Name = "QuickPurchaseCard"
+quickCard.Size = UDim2.new(1, 0, 0, 128)
+quickCard.LayoutOrder = 1
+quickCard.BackgroundColor3 = Color3.fromRGB(14, 31, 46)
+quickCard.BorderSizePixel = 0
+quickCard.Parent = gamePassContent
+
+Instance.new("UICorner", quickCard).CornerRadius = UDim.new(0, 12)
+
+local quickStroke = Instance.new("UIStroke", quickCard)
+quickStroke.Color = THEME.Border
+quickStroke.Thickness = 1
+
+local quickTitle = Instance.new("TextLabel")
+quickTitle.Size = UDim2.new(1, -28, 0, 26)
+quickTitle.Position = UDim2.fromOffset(14, 12)
+quickTitle.BackgroundTransparency = 1
+quickTitle.Text = "QUICK PURCHASE"
+quickTitle.TextColor3 = THEME.Text
+quickTitle.Font = FONT_BOLD
+quickTitle.TextSize = 12
+quickTitle.TextXAlignment = Enum.TextXAlignment.Left
+quickTitle.Parent = quickCard
+
+local gamePassIdBox = Instance.new("TextBox")
+gamePassIdBox.Name = "GamePassIdBox"
+gamePassIdBox.Size = UDim2.new(1, -204, 0, 48)
+gamePassIdBox.Position = UDim2.fromOffset(14, 55)
+gamePassIdBox.BackgroundColor3 = THEME.Panel
+gamePassIdBox.BorderSizePixel = 0
+gamePassIdBox.PlaceholderText = "Game Pass ID"
+gamePassIdBox.PlaceholderColor3 = THEME.TextMuted
+gamePassIdBox.Text = ""
+gamePassIdBox.TextColor3 = THEME.Text
+gamePassIdBox.ClearTextOnFocus = false
+gamePassIdBox.Font = FONT_BOLD
+gamePassIdBox.TextSize = 14
+gamePassIdBox.TextXAlignment = Enum.TextXAlignment.Left
+gamePassIdBox.Parent = quickCard
+
+Instance.new("UICorner", gamePassIdBox).CornerRadius = UDim.new(0, 9)
+
+local gamePassInputPadding = Instance.new("UIPadding")
+gamePassInputPadding.PaddingLeft = UDim.new(0, 14)
+gamePassInputPadding.PaddingRight = UDim.new(0, 14)
+gamePassInputPadding.Parent = gamePassIdBox
+
+local gamePassInputStroke = Instance.new("UIStroke", gamePassIdBox)
+gamePassInputStroke.Color = THEME.Border
+gamePassInputStroke.Thickness = 1
+bindSearchFocus(gamePassIdBox, gamePassInputStroke)
+
+local quickBuyButton = Instance.new("TextButton")
+quickBuyButton.Name = "QuickBuyButton"
+quickBuyButton.Size = UDim2.new(0, 160, 0, 48)
+quickBuyButton.Position = UDim2.new(1, -174, 0, 55)
+quickBuyButton.BackgroundColor3 = THEME.Accent
+quickBuyButton.BorderSizePixel = 0
+quickBuyButton.Text = "BUY"
+quickBuyButton.TextColor3 = THEME.ActionText
+quickBuyButton.TextStrokeTransparency = 1
+quickBuyButton.Font = FONT_BOLD
+quickBuyButton.TextSize = 13
+quickBuyButton.AutoButtonColor = false
+quickBuyButton.Parent = quickCard
+bindPressFeedback(quickBuyButton)
+
+Instance.new("UICorner", quickBuyButton).CornerRadius = UDim.new(0, 9)
+
+quickBuyButton.MouseEnter:Connect(function()
+	TweenService:Create(quickBuyButton, TweenInfo.new(0.12), {
+		BackgroundColor3 = Color3.fromRGB(105, 240, 234)
+	}):Play()
+end)
+
+quickBuyButton.MouseLeave:Connect(function()
+	TweenService:Create(quickBuyButton, TweenInfo.new(0.12), {
+		BackgroundColor3 = THEME.Accent
+	}):Play()
+end)
+
+quickBuyButton.MouseButton1Click:Connect(function()
+	local id = tonumber(gamePassIdBox.Text)
+
+	if not id then
+		gamePassIdBox.BackgroundColor3 = Color3.fromRGB(57, 23, 31)
+		task.delay(0.45, function()
+			if gamePassIdBox.Parent then
+				gamePassIdBox.BackgroundColor3 = THEME.Panel
+			end
+		end)
+		return
+	end
+
+	if promptGamePassPurchase(id) then
+		quickBuyButton.Text = "OPENED"
+		task.delay(1.2, function()
+			if quickBuyButton.Parent then
+				quickBuyButton.Text = "BUY"
+			end
+		end)
+	end
+end)
+
+local gamePassGrid = Instance.new("ScrollingFrame")
+gamePassGrid.Name = "GamePassGrid"
+gamePassGrid.Size = UDim2.new(1, 0, 1, -140)
+gamePassGrid.LayoutOrder = 2
+gamePassGrid.BackgroundTransparency = 1
+gamePassGrid.BorderSizePixel = 0
+gamePassGrid.CanvasSize = UDim2.new(0, 0, 0, 0)
+gamePassGrid.AutomaticCanvasSize = Enum.AutomaticSize.Y
+gamePassGrid.ScrollBarThickness = 2
+gamePassGrid.ScrollBarImageColor3 = Color3.fromRGB(88, 123, 140)
+gamePassGrid.ScrollBarImageTransparency = 0.25
+gamePassGrid.Parent = gamePassContent
+
+local gamePassGridLayout = Instance.new("UIGridLayout")
+gamePassGridLayout.CellSize = UDim2.new(1 / 3, -8, 0, 84)
+gamePassGridLayout.CellPadding = UDim2.new(0, 12, 0, 12)
+gamePassGridLayout.FillDirection = Enum.FillDirection.Horizontal
+gamePassGridLayout.FillDirectionMaxCells = 3
+gamePassGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+gamePassGridLayout.Parent = gamePassGrid
+
+local function createGamePassButton(item, order)
+	local button = Instance.new("TextButton")
+	button.Name = item.Name
+	button.LayoutOrder = order
+	button.BackgroundColor3 = THEME.Card
+	button.BorderSizePixel = 0
+	button.Text = ""
+	button.AutoButtonColor = false
+	button.Parent = gamePassGrid
+	bindPressFeedback(button)
+
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+
+	local buttonStroke = Instance.new("UIStroke", button)
+	buttonStroke.Color = THEME.Border
+	buttonStroke.Thickness = 1
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, -24, 0, 26)
+	nameLabel.Position = UDim2.fromOffset(12, 12)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = string.upper(item.Name)
+	nameLabel.TextColor3 = THEME.Text
+	nameLabel.Font = FONT_BOLD
+	nameLabel.TextSize = 12
+	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Parent = button
+
+	local idLabel = Instance.new("TextLabel")
+	idLabel.Size = UDim2.new(1, -24, 0, 24)
+	idLabel.Position = UDim2.fromOffset(12, 43)
+	idLabel.BackgroundTransparency = 1
+	idLabel.Text = tostring(item.Id)
+	idLabel.TextColor3 = THEME.TextMuted
+	idLabel.Font = FONT_REGULAR
+	idLabel.TextSize = 11
+	idLabel.TextXAlignment = Enum.TextXAlignment.Left
+	idLabel.Parent = button
+
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.CardHover
+		}):Play()
+		TweenService:Create(buttonStroke, TweenInfo.new(0.12), {
+			Color = THEME.Accent
+		}):Play()
+	end)
+
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.Card
+		}):Play()
+		TweenService:Create(buttonStroke, TweenInfo.new(0.12), {
+			Color = THEME.Border
+		}):Play()
+	end)
+
+	button.MouseButton1Click:Connect(function()
+		promptGamePassPurchase(item.Id)
+	end)
+
+	return button
+end
+
+if #gamePassItems > 0 then
+	for order, item in ipairs(gamePassItems) do
+		createGamePassButton(item, order)
+	end
+else
+	local emptyLabel = Instance.new("TextLabel")
+	emptyLabel.Name = "EmptyGamePassList"
+	emptyLabel.Size = UDim2.new(1, 0, 0, 84)
+	emptyLabel.BackgroundColor3 = Color3.fromRGB(14, 31, 46)
+	emptyLabel.BorderSizePixel = 0
+	emptyLabel.Text = "ADD GAME PASS IDS IN THE GAMEPASS DATA TABLE TO CREATE FIXED BUTTONS"
+	emptyLabel.TextColor3 = THEME.TextMuted
+	emptyLabel.Font = FONT_BOLD
+	emptyLabel.TextSize = 11
+	emptyLabel.TextWrapped = true
+	emptyLabel.Parent = gamePassGrid
+
+	Instance.new("UICorner", emptyLabel).CornerRadius = UDim.new(0, 10)
+
+	local emptyStroke = Instance.new("UIStroke", emptyLabel)
+	emptyStroke.Color = THEME.Border
+	emptyStroke.Thickness = 1
+end
+
+registerPage("Game Pass", {gamePassPage})
