@@ -591,6 +591,83 @@ local function centerPreviewObject(object)
 	return newCF, newSize
 end
 
+-- Some fish contain large invisible root parts or hitboxes. GetBoundingBox includes
+-- those parts, so the visible mesh becomes extremely small in a card preview.
+local function getVisibleModelBounds(object)
+	local minimum = Vector3.new(math.huge, math.huge, math.huge)
+	local maximum = Vector3.new(-math.huge, -math.huge, -math.huge)
+	local foundVisiblePart = false
+
+	local function includePart(part)
+		if part.Transparency >= 0.98 then
+			return
+		end
+
+		foundVisiblePart = true
+		local halfSize = part.Size * 0.5
+
+		for x = -1, 1, 2 do
+			for y = -1, 1, 2 do
+				for z = -1, 1, 2 do
+					local corner = part.CFrame * Vector3.new(
+						halfSize.X * x,
+						halfSize.Y * y,
+						halfSize.Z * z
+					)
+
+					minimum = Vector3.new(
+						math.min(minimum.X, corner.X),
+						math.min(minimum.Y, corner.Y),
+						math.min(minimum.Z, corner.Z)
+					)
+					maximum = Vector3.new(
+						math.max(maximum.X, corner.X),
+						math.max(maximum.Y, corner.Y),
+						math.max(maximum.Z, corner.Z)
+					)
+				end
+			end
+		end
+	end
+
+	if object:IsA("BasePart") then
+		includePart(object)
+	else
+		for _, descendant in ipairs(object:GetDescendants()) do
+			if descendant:IsA("BasePart") then
+				includePart(descendant)
+			end
+		end
+	end
+
+	if not foundVisiblePart then
+		return getModelBounds(object)
+	end
+
+	local size = maximum - minimum
+	return CFrame.new((minimum + maximum) * 0.5), size
+end
+
+local function centerVisiblePreviewObject(object)
+	local cf = getVisibleModelBounds(object)
+
+	if not cf then
+		return nil, nil
+	end
+
+	local center = cf.Position
+
+	if object:IsA("Model") then
+		local pivot = object:GetPivot()
+		object:PivotTo(CFrame.new(pivot.Position - center) * pivot.Rotation)
+	elseif object:IsA("BasePart") then
+		local rotation = object.CFrame - object.CFrame.Position
+		object.CFrame = CFrame.new(-center) * rotation
+	end
+
+	return getVisibleModelBounds(object)
+end
+
 local function preparePreviewObject(object)
 	if object:IsA("BasePart") then
 		object.Anchored = true
@@ -1020,7 +1097,8 @@ local function createFishCard(data)
 
 		preparePreviewObject(miniClone)
 
-		local miniCF, miniSize = centerPreviewObject(miniClone)
+		-- Ignore invisible hitboxes when centering and fitting fish cards.
+		local miniCF, miniSize = centerVisiblePreviewObject(miniClone)
 
 		if miniCF and miniSize then
 			local miniRotation = CFrame.Angles(0, math.rad(180), 0)
