@@ -864,3 +864,533 @@ end)
 close.MouseButton1Click:Connect(function()
 	gui:Destroy()
 end)
+
+
+
+local FishModule = require(fishDataModule)
+
+for _, child in ipairs(fishFolder:GetChildren()) do
+	if child:IsA("Model") or child:IsA("Folder") then
+		FishIndex[child.Name] = child
+	end
+end
+
+local function getRarityColor(rarity)
+	return THEME[rarity] or THEME.Unknown
+end
+
+local function getFishRarity(name)
+	local data = FishModule[name]
+
+	if type(data) == "table" then
+		return data.Rarity or data.rarity or "Unknown"
+	end
+
+	local fish = FishIndex[name]
+
+	if fish then
+		local rarity = fish:GetAttribute("Rarity")
+
+		if rarity then
+			return rarity
+		end
+	end
+
+	return "Unknown"
+end
+
+local function getFishDisplayName(name)
+	local data = FishModule[name]
+
+	if type(data) == "table" then
+		return data.DisplayName or data.Name or name
+	end
+
+	return name
+end
+
+local function getFishWeight(name)
+	local data = FishModule[name]
+
+	if type(data) == "table" then
+		return data.Weight or data.weight or data.MaxWeight or data.maxWeight
+	end
+
+	return nil
+end
+
+local function getFishValue(name)
+	local data = FishModule[name]
+
+	if type(data) == "table" then
+		return data.Value or data.Price or data.SellPrice or data.value
+	end
+
+	return nil
+end
+
+local function createFishRarityButton(rarity, order)
+	local button = Instance.new("TextButton")
+	button.Name = rarity
+	button.Size = UDim2.new(1, 0, 0, 31)
+	button.BackgroundColor3 = THEME.Card
+	button.BackgroundTransparency = 1
+	button.BorderSizePixel = 0
+	button.Text = RARITY_DISPLAY[rarity] or string.upper(rarity)
+	button.TextColor3 = getRarityColor(rarity)
+	button.Font = FONT_BOLD
+	button.TextSize = 10
+	button.AutoButtonColor = false
+	button.LayoutOrder = order
+	button.Parent = categoryContainer
+
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 7)
+
+	return button
+end
+
+local selectedRarity = "All"
+local rarityButtons = {}
+
+local allButton = createFishRarityButton("All", 0)
+allButton.Text = "ALL"
+allButton.TextColor3 = THEME.Text
+
+rarityButtons.All = allButton
+
+for rarity, order in pairs(RARITY_ORDER) do
+	local button = createFishRarityButton(rarity, order)
+	rarityButtons[rarity] = button
+end
+
+local function updateRarityButtons()
+	for rarity, button in pairs(rarityButtons) do
+		if rarity == selectedRarity then
+			button.BackgroundTransparency = 0
+			button.BackgroundColor3 = THEME.CardSelected
+			button.TextColor3 = rarity == "All" and THEME.Accent or getRarityColor(rarity)
+		else
+			button.BackgroundTransparency = 1
+			button.TextColor3 = rarity == "All" and THEME.TextMuted or getRarityColor(rarity)
+		end
+	end
+end
+
+local fishCards = {}
+
+local function clearFishCards()
+	for _, card in ipairs(fishCards) do
+		if card and card.Parent then
+			card:Destroy()
+		end
+	end
+
+	table.clear(fishCards)
+end
+
+local function cloneFishModel(name)
+	local source = FishIndex[name]
+
+	if not source then
+		return nil
+	end
+
+	local clone
+
+	pcall(function()
+		clone = source:Clone()
+	end)
+
+	return clone
+end
+
+local function clearViewport()
+	for _, child in ipairs(viewport:GetChildren()) do
+		if not child:IsA("UICorner") then
+			child:Destroy()
+		end
+	end
+
+	viewportCamera = nil
+	previewWorld = nil
+	previewClone = nil
+	previewBasePivot = nil
+end
+
+local function setupViewport(name)
+	clearViewport()
+
+	local model = cloneFishModel(name)
+
+	if not model then
+		return
+	end
+
+	previewWorld = Instance.new("WorldModel")
+	previewWorld.Parent = viewport
+
+	model.Parent = previewWorld
+	previewClone = model
+
+	local camera = Instance.new("Camera")
+	camera.Parent = viewport
+	viewport.CurrentCamera = camera
+	viewportCamera = camera
+
+	local cf, size
+
+	pcall(function()
+		cf, size = model:GetBoundingBox()
+	end)
+
+	if not cf or not size then
+		cf = model:GetPivot()
+		size = Vector3.new(5, 5, 5)
+	end
+
+	local maxSize = math.max(size.X, size.Y, size.Z)
+	local distance = math.max(maxSize * 2.3, 7)
+
+	camera.CFrame = CFrame.lookAt(
+		cf.Position + Vector3.new(distance, distance * 0.45, distance),
+		cf.Position
+	)
+
+	previewBasePivot = model:GetPivot()
+	previewRotation = 0
+end
+
+local function updatePreview(name)
+	selectedFish = name
+
+	if not name then
+		previewTitle.Text = "NO FISH SELECTED"
+		previewRarity.Text = "SELECT A FISH"
+		previewRarity.TextColor3 = THEME.TextMuted
+		clearViewport()
+		return
+	end
+
+	local rarity = getFishRarity(name)
+	local displayName = getFishDisplayName(name)
+
+	previewTitle.Text = displayName
+	previewRarity.Text = RARITY_DISPLAY[rarity] or string.upper(rarity)
+	previewRarity.TextColor3 = getRarityColor(rarity)
+
+	setupViewport(name)
+end
+
+local function createFishCard(name, rarity, order)
+	local card = Instance.new("TextButton")
+	card.Name = name
+	card.Size = UDim2.new(0, 125, 0, 125)
+	card.BackgroundColor3 = THEME.Card
+	card.BorderSizePixel = 0
+	card.Text = ""
+	card.AutoButtonColor = false
+	card.LayoutOrder = order
+	card.Parent = list
+
+	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = THEME.Border
+	stroke.Thickness = 1
+	stroke.Parent = card
+
+	local image = Instance.new("ViewportFrame")
+	image.Name = "Preview"
+	image.Size = UDim2.new(1, -12, 0, 70)
+	image.Position = UDim2.new(0, 6, 0, 6)
+	image.BackgroundColor3 = Color3.fromRGB(10, 12, 17)
+	image.BorderSizePixel = 0
+	image.Ambient = Color3.fromRGB(200, 200, 200)
+	image.LightColor = Color3.fromRGB(255, 255, 255)
+	image.LightDirection = Vector3.new(-1, -1, -1)
+	image.Parent = card
+
+	Instance.new("UICorner", image).CornerRadius = UDim.new(0, 7)
+
+	local source = FishIndex[name]
+
+	if source then
+		local clone
+
+		pcall(function()
+			clone = source:Clone()
+		end)
+
+		if clone then
+			local world = Instance.new("WorldModel")
+			world.Parent = image
+			clone.Parent = world
+
+			local camera = Instance.new("Camera")
+			camera.Parent = image
+			image.CurrentCamera = camera
+
+			local cf, size
+
+			pcall(function()
+				cf, size = clone:GetBoundingBox()
+			end)
+
+			if cf and size then
+				local maxSize = math.max(size.X, size.Y, size.Z)
+				local distance = math.max(maxSize * 2, 5)
+
+				camera.CFrame = CFrame.lookAt(
+					cf.Position + Vector3.new(distance, distance * 0.35, distance),
+					cf.Position
+				)
+			else
+				camera.CFrame = CFrame.new(0, 0, 8)
+			end
+		end
+	end
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Name = "Name"
+	nameLabel.Size = UDim2.new(1, -12, 0, 25)
+	nameLabel.Position = UDim2.new(0, 6, 0, 79)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Text = getFishDisplayName(name)
+	nameLabel.TextColor3 = THEME.Text
+	nameLabel.Font = FONT_BOLD
+	nameLabel.TextSize = 10
+	nameLabel.TextWrapped = true
+	nameLabel.Parent = card
+
+	local rarityLabel = Instance.new("TextLabel")
+	rarityLabel.Name = "Rarity"
+	rarityLabel.Size = UDim2.new(1, -12, 0, 15)
+	rarityLabel.Position = UDim2.new(0, 6, 1, -20)
+	rarityLabel.BackgroundTransparency = 1
+	rarityLabel.Text = RARITY_DISPLAY[rarity] or string.upper(rarity)
+	rarityLabel.TextColor3 = getRarityColor(rarity)
+	rarityLabel.Font = FONT_BOLD
+	rarityLabel.TextSize = 8
+	rarityLabel.Parent = card
+
+	card.MouseEnter:Connect(function()
+		TweenService:Create(card, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.CardHover
+		}):Play()
+
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
+			Color = getRarityColor(rarity)
+		}):Play()
+	end)
+
+	card.MouseLeave:Connect(function()
+		TweenService:Create(card, TweenInfo.new(0.12), {
+			BackgroundColor3 = selectedFish == name and THEME.CardSelected or THEME.Card
+		}):Play()
+
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
+			Color = selectedFish == name and getRarityColor(rarity) or THEME.Border
+		}):Play()
+	end)
+
+	card.MouseButton1Click:Connect(function()
+		for _, otherCard in ipairs(fishCards) do
+			local otherStroke = otherCard:FindFirstChildOfClass("UIStroke")
+
+			if otherCard ~= card then
+				TweenService:Create(otherCard, TweenInfo.new(0.12), {
+					BackgroundColor3 = THEME.Card
+				}):Play()
+
+				if otherStroke then
+					TweenService:Create(otherStroke, TweenInfo.new(0.12), {
+						Color = THEME.Border
+					}):Play()
+				end
+			end
+		end
+
+		TweenService:Create(card, TweenInfo.new(0.12), {
+			BackgroundColor3 = THEME.CardSelected
+		}):Play()
+
+		TweenService:Create(stroke, TweenInfo.new(0.12), {
+			Color = getRarityColor(rarity)
+		}):Play()
+
+		updatePreview(name)
+	end)
+
+	table.insert(fishCards, card)
+end
+
+local function rebuildFishList()
+	clearFishCards()
+
+	local query = string.lower(search.Text or "")
+	local order = 0
+
+	local entries = {}
+
+	for name in pairs(FishIndex) do
+		local rarity = getFishRarity(name)
+
+		local validRarity = selectedRarity == "All" or rarity == selectedRarity
+		local validSearch = query == "" or string.find(
+			string.lower(getFishDisplayName(name)),
+			query,
+			1,
+			true
+		)
+
+		if validRarity and validSearch then
+			table.insert(entries, {
+				Name = name,
+				Rarity = rarity,
+				Order = RARITY_ORDER[rarity] or 999
+			})
+		end
+	end
+
+	table.sort(entries, function(a, b)
+		if a.Order == b.Order then
+			return string.lower(a.Name) < string.lower(b.Name)
+		end
+
+		return a.Order < b.Order
+	end)
+
+	for _, entry in ipairs(entries) do
+		order += 1
+		createFishCard(entry.Name, entry.Rarity, order)
+	end
+
+	task.defer(function()
+		list.CanvasSize = UDim2.new(
+			0,
+			0,
+			0,
+			grid.AbsoluteContentSize.Y + 10
+		)
+	end)
+end
+
+for rarity, button in pairs(rarityButtons) do
+	button.MouseEnter:Connect(function()
+		if selectedRarity ~= rarity then
+			TweenService:Create(button, TweenInfo.new(0.12), {
+				BackgroundTransparency = 0,
+				BackgroundColor3 = THEME.CardHover
+			}):Play()
+		end
+	end)
+
+	button.MouseLeave:Connect(function()
+		if selectedRarity ~= rarity then
+			TweenService:Create(button, TweenInfo.new(0.12), {
+				BackgroundTransparency = 1
+			}):Play()
+		end
+	end)
+
+	button.MouseButton1Click:Connect(function()
+		selectedRarity = rarity
+		updateRarityButtons()
+		rebuildFishList()
+	end)
+end
+
+search:GetPropertyChangedSignal("Text"):Connect(function()
+	rebuildFishList()
+end)
+
+grid:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	list.CanvasSize = UDim2.new(
+		0,
+		0,
+		0,
+		grid.AbsoluteContentSize.Y + 10
+	)
+end)
+
+viewport.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		previewDragging = true
+		previewLastX = input.Position.X
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if not previewDragging or not previewClone or not previewBasePivot then
+		return
+	end
+
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		local currentX = input.Position.X
+		local delta = currentX - previewLastX
+
+		previewLastX = currentX
+		previewRotation += delta * 0.01
+
+		previewClone:PivotTo(
+			previewBasePivot * CFrame.Angles(0, previewRotation, 0)
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.Touch then
+
+		previewDragging = false
+	end
+end)
+
+local function addFishToInventory()
+	if not selectedFish then
+		return
+	end
+
+	pcall(function()
+		addToInventoryRF:InvokeServer(selectedFish)
+	end)
+end
+
+local addButton = Instance.new("TextButton")
+addButton.Name = "AddToInventory"
+addButton.Size = UDim2.new(1, -34, 0, 42)
+addButton.Position = UDim2.new(0, 17, 1, -58)
+addButton.BackgroundColor3 = THEME.Accent
+addButton.BorderSizePixel = 0
+addButton.Text = "ADD TO INVENTORY"
+addButton.TextColor3 = Color3.new(1, 1, 1)
+addButton.Font = FONT_BOLD
+addButton.TextSize = 10
+addButton.AutoButtonColor = false
+addButton.Parent = previewPanel
+
+Instance.new("UICorner", addButton).CornerRadius = UDim.new(0, 9)
+
+addButton.MouseEnter:Connect(function()
+	TweenService:Create(addButton, TweenInfo.new(0.12), {
+		BackgroundColor3 = THEME.AccentDark
+	}):Play()
+end)
+
+addButton.MouseLeave:Connect(function()
+	TweenService:Create(addButton, TweenInfo.new(0.12), {
+		BackgroundColor3 = THEME.Accent
+	}):Play()
+end)
+
+addButton.MouseButton1Click:Connect(function()
+	addFishToInventory()
+end)
+
+updateRarityButtons()
+rebuildFishList()
+updatePreview(nil)
