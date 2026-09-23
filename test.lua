@@ -2922,16 +2922,8 @@ local gamePassItems = {
 
 local gamePassProductIndex = {}
 local gamePassButtonIndex = {}
-local gamePassProductIndex = {}
-local gamePassButtonIndex = {}
 
 -- Server Luck state
--- 1 = ไม่มี Luck boost
--- 2 = X2
--- 3 = X3
--- 4 = X4
--- 5 = X5
-local serverLuckCurrent = 1
 local serverLuckMinutes = 15
 
 for _, zone in ipairs(gamePassItems) do
@@ -2968,7 +2960,7 @@ local function getCurrentServerLuck()
 	local multiplierLabel = boost and boost:FindFirstChild("Multiplier")
 
 	if not multiplierLabel or not multiplierLabel:IsA("TextLabel") then
-		return serverLuckCurrent
+		return 1
 	end
 
 	local multiplier = tonumber(
@@ -2976,25 +2968,10 @@ local function getCurrentServerLuck()
 	)
 
 	if not multiplier then
-		return serverLuckCurrent
+		return 1
 	end
 
 	return math.clamp(multiplier, 1, 5)
-end
-
-local function getNextServerLuck()
-	local currentLuck = getCurrentServerLuck()
-
-	-- X1 -> X2
-	-- X2 -> X3
-	-- X3 -> X4
-	-- X4 -> X5
-	-- X5 -> X5 (เพิ่มเวลา)
-	return math.clamp(currentLuck + 1, 2, 5)
-end
-
-local function syncServerLuckState()
-	serverLuckCurrent = getCurrentServerLuck()
 end
 
 local function updateServerLuckButton(item)
@@ -3007,7 +2984,6 @@ local function updateServerLuckButton(item)
 	local currentLuck = getCurrentServerLuck()
 	local nextLuck = math.clamp(currentLuck + 1, 2, 5)
 
-	-- X5 แล้ว = ซื้อเพิ่มเวลา
 	if currentLuck >= 5 then
 		if item.Luck == 5 then
 			data.Button.Text = ""
@@ -3015,11 +2991,9 @@ local function updateServerLuckButton(item)
 			data.ActionLabel.Text = "+" .. tostring(serverLuckMinutes) .. " MIN"
 			data.ActionLabel.BackgroundColor3 = data.Color
 		end
-
 		return
 	end
 
-	-- แสดงเฉพาะขั้นถัดไป
 	if item.Luck == nextLuck then
 		data.Button.Text = ""
 		data.NameLabel.Text = "Server Luck X" .. tostring(item.Luck)
@@ -3029,17 +3003,13 @@ local function updateServerLuckButton(item)
 end
 
 local function refreshServerLuckButtons()
-	syncServerLuckState()
-
-	local currentLuck = serverLuckCurrent
+	local currentLuck = getCurrentServerLuck()
 	local nextLuck = math.clamp(currentLuck + 1, 2, 5)
 
 	for _, item in ipairs(gamePassItems[3].Items) do
 		local data = gamePassButtonIndex[item.Id]
 
 		if data then
-			-- X5 = แสดง X5 เพื่อเพิ่มเวลา
-			-- ต่ำกว่า X5 = แสดงเฉพาะขั้นถัดไป
 			if currentLuck >= 5 then
 				data.Button.Visible = item.Luck == 5
 			else
@@ -3050,7 +3020,6 @@ local function refreshServerLuckButtons()
 		end
 	end
 end
-
 local function createGamePassButton(parent, item, accentColor, order)
 	local button = Instance.new("TextButton")
 	button.Name = "Purchase_" .. tostring(item.Id)
@@ -3134,10 +3103,10 @@ local function createGamePassButton(parent, item, accentColor, order)
 	button.MouseButton1Click:Connect(function()
 
 		----------------------------------------------------------------
+		----------------------------------------------------------------
 		-- SERVER LUCK
 		----------------------------------------------------------------
 		if item.Luck then
-
 			local currentLuck = getCurrentServerLuck()
 			local expectedLuck = math.clamp(currentLuck + 1, 2, 5)
 
@@ -3152,10 +3121,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 				end
 
 				fireProductSignal(item.Id)
-
 				serverLuckMinutes += 15
-				serverLuckCurrent = 5
-
 				refreshServerLuckButtons()
 
 				setGamePassStatus(
@@ -3176,13 +3142,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 			end
 
 			fireProductSignal(item.Id)
-
-			-- อัปเดต local state ทันที
-			-- เพื่อให้ UI เปลี่ยนทันที ไม่ต้องรอ HUD
-			serverLuckCurrent = item.Luck
 			serverLuckMinutes = 15
-
-			refreshServerLuckButtons()
 
 			setGamePassStatus(
 				"SERVER LUCK X" .. tostring(item.Luck) .. " • 15 MIN",
@@ -3349,14 +3309,12 @@ end
 registerPage("Game Pass", {gamePassPage})
 
 ----------------------------------------------------------------
+----------------------------------------------------------------
 -- SERVER LUCK HUD SYNC
 ----------------------------------------------------------------
 
 local function refreshServerLuckPurchaseVisibility()
 	local currentLuck = getCurrentServerLuck()
-
-	serverLuckCurrent = currentLuck
-
 	local nextLuck = math.clamp(currentLuck + 1, 2, 5)
 
 	for _, item in ipairs(gamePassItems[3].Items) do
@@ -3364,17 +3322,13 @@ local function refreshServerLuckPurchaseVisibility()
 
 		if data then
 			if currentLuck >= 5 then
-				-- X5 แล้ว แสดง X5 สำหรับเพิ่มเวลา
 				data.Button.Visible = item.Luck == 5
 			else
-				-- แสดงเฉพาะ step ถัดไป
 				data.Button.Visible = item.Luck == nextLuck
 			end
-		end
-	end
 
-	for _, item in ipairs(gamePassItems[3].Items) do
-		updateServerLuckButton(item)
+			updateServerLuckButton(item)
+		end
 	end
 end
 
@@ -3383,33 +3337,6 @@ refreshServerLuckPurchaseVisibility()
 task.spawn(function()
 	while gui.Parent do
 		task.wait(0.5)
-		refreshServerLuckPurchaseVisibility()
-	end
-end)
-
-local function refreshServerLuckPurchaseVisibility()
-	local screen = playerGui:FindFirstChild("GameScreenGui")
-	local hud = screen and screen:FindFirstChild("HUD")
-	local left = hud and hud:FindFirstChild("LeftFrame")
-	local bottom = left and left:FindFirstChild("BottomLeftFrame")
-	local wrapper = bottom and bottom:FindFirstChild("Wrapper")
-	local boost = wrapper and wrapper:FindFirstChild("ServerBoost")
-	local multiplierLabel = boost and boost:FindFirstChild("Multiplier")
-	local multiplier = multiplierLabel and tonumber(multiplierLabel.Text:match("(%d+)%s*[xX]"))
-	local visibleLuck = math.clamp((multiplier or 1) + 1, 2, 5)
-
-	for _, item in ipairs(gamePassItems[3].Items) do
-		local data = gamePassButtonIndex[item.Id]
-		if data then
-			data.Button.Visible = item.Luck == visibleLuck
-		end
-	end
-end
-
-refreshServerLuckPurchaseVisibility()
-task.spawn(function()
-	while gui.Parent do
-		task.wait(1)
 		refreshServerLuckPurchaseVisibility()
 	end
 end)
