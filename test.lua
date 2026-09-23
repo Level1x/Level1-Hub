@@ -40,6 +40,18 @@ local tabBar
 local pageReferences = {}
 
 -- ============================================================================
+-- Page References
+-- ============================================================================
+
+-- Each feature registers its own panels after constructing its UI.
+local function registerPage(name, elements)
+    pageReferences[name] = elements
+    for _, element in ipairs(elements) do
+        presentPage(element, not isMinimized and currentTab == name)
+    end
+end
+
+-- ============================================================================
 -- Theme
 -- ============================================================================
 
@@ -499,17 +511,7 @@ createTab("Teleport", 3)
 createTab("Game Pass", 4)
 
 
--- ============================================================================
--- Page References
--- ============================================================================
 
--- Each feature registers its own panels after constructing its UI.
-local function registerPage(name, elements)
-    pageReferences[name] = elements
-    for _, element in ipairs(elements) do
-        presentPage(element, not isMinimized and currentTab == name)
-    end
-end
 
 -- ============================================================================
 -- Tab Switching
