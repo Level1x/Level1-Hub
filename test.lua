@@ -3346,3 +3346,30 @@ for zoneOrder, zone in ipairs(gamePassItems) do
 end
 
 registerPage("Game Pass", {gamePassPage})
+
+local function refreshServerLuckPurchaseVisibility()
+	local screen = playerGui:FindFirstChild("GameScreenGui")
+	local hud = screen and screen:FindFirstChild("HUD")
+	local left = hud and hud:FindFirstChild("LeftFrame")
+	local bottom = left and left:FindFirstChild("BottomLeftFrame")
+	local wrapper = bottom and bottom:FindFirstChild("Wrapper")
+	local boost = wrapper and wrapper:FindFirstChild("ServerBoost")
+	local multiplierLabel = boost and boost:FindFirstChild("Multiplier")
+	local multiplier = multiplierLabel and tonumber(multiplierLabel.Text:match("(%d+)%s*[xX]"))
+	local visibleLuck = math.clamp((multiplier or 1) + 1, 2, 5)
+
+	for _, item in ipairs(gamePassItems[3].Items) do
+		local data = gamePassButtonIndex[item.Id]
+		if data then
+			data.Button.Visible = item.Luck == visibleLuck
+		end
+	end
+end
+
+refreshServerLuckPurchaseVisibility()
+task.spawn(function()
+	while gui.Parent do
+		task.wait(1)
+		refreshServerLuckPurchaseVisibility()
+	end
+end)
