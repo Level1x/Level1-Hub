@@ -2922,7 +2922,16 @@ local gamePassItems = {
 
 local gamePassProductIndex = {}
 local gamePassButtonIndex = {}
-local serverLuckStep = 0
+local gamePassProductIndex = {}
+local gamePassButtonIndex = {}
+
+-- Server Luck state
+-- 1 = ไม่มี Luck boost
+-- 2 = X2
+-- 3 = X3
+-- 4 = X4
+-- 5 = X5
+local serverLuckCurrent = 1
 local serverLuckMinutes = 15
 
 for _, zone in ipairs(gamePassItems) do
@@ -2946,138 +2955,99 @@ local function checkGamePassOwned(id)
 		return MarketplaceService:UserOwnsGamePassAsync(player.UserId, id)
 	end)
 
-	if ok then
-		return result == true
+	return ok and result
+end
+
+local function getCurrentServerLuck()
+	local screen = playerGui:FindFirstChild("GameScreenGui")
+	local hud = screen and screen:FindFirstChild("HUD")
+	local left = hud and hud:FindFirstChild("LeftFrame")
+	local bottom = left and left:FindFirstChild("BottomLeftFrame")
+	local wrapper = bottom and bottom:FindFirstChild("Wrapper")
+	local boost = wrapper and wrapper:FindFirstChild("ServerBoost")
+	local multiplierLabel = boost and boost:FindFirstChild("Multiplier")
+
+	if not multiplierLabel or not multiplierLabel:IsA("TextLabel") then
+		return serverLuckCurrent
 	end
 
-	return false
-end
+	local multiplier = tonumber(
+		multiplierLabel.Text:match("(%d+)%s*[xX]")
+	)
 
-local function checkOnceItemOwned(item)
-	if not item.Once then
-		return false
+	if not multiplier then
+		return serverLuckCurrent
 	end
 
-	return checkGamePassOwned(item.Id)
+	return math.clamp(multiplier, 1, 5)
 end
 
-local gamePassPage = Instance.new("Frame")
-gamePassPage.Name = "GamePassPage"
-gamePassPage.Size = UDim2.new(1, -40, 1, -130)
-gamePassPage.Position = UDim2.new(0, 20, 0, 120)
-gamePassPage.BackgroundTransparency = 1
-gamePassPage.Visible = false
-gamePassPage.Parent = frame
+local function getNextServerLuck()
+	local currentLuck = getCurrentServerLuck()
 
-pages["Game Pass"] = gamePassPage
-
-local gamePassPanel = Instance.new("Frame")
-gamePassPanel.Size = UDim2.new(1, 0, 1, 0)
-gamePassPanel.BackgroundColor3 = THEME.Sidebar
-gamePassPanel.BorderSizePixel = 0
-gamePassPanel.Parent = gamePassPage
-
-Instance.new("UICorner", gamePassPanel).CornerRadius = UDim.new(0, 12)
-addSurfaceGradient(gamePassPanel, 80)
-
-local gamePassStroke = Instance.new("UIStroke", gamePassPanel)
-gamePassStroke.Color = THEME.Border
-gamePassStroke.Thickness = 1
-
-local gamePassTitle = Instance.new("TextLabel")
-gamePassTitle.Size = UDim2.new(1, -30, 0, 30)
-gamePassTitle.Position = UDim2.fromOffset(15, 15)
-gamePassTitle.BackgroundTransparency = 1
-gamePassTitle.Text = "GAME PASS"
-gamePassTitle.TextColor3 = THEME.Text
-gamePassTitle.Font = FONT_BOLD
-gamePassTitle.TextSize = 16
-gamePassTitle.TextXAlignment = Enum.TextXAlignment.Left
-gamePassTitle.Parent = gamePassPanel
-
-local gamePassInfo = Instance.new("TextLabel")
-gamePassInfo.Size = UDim2.new(1, -30, 0, 22)
-gamePassInfo.Position = UDim2.fromOffset(15, 43)
-gamePassInfo.BackgroundTransparency = 1
-gamePassInfo.Text = "PACKS • ITEMS • SERVER LUCK • MONEY • GEMS"
-gamePassInfo.TextColor3 = THEME.TextMuted
-gamePassInfo.Font = FONT_REGULAR
-gamePassInfo.TextSize = 10
-gamePassInfo.TextXAlignment = Enum.TextXAlignment.Left
-gamePassInfo.Parent = gamePassPanel
-
-local gamePassStatus = Instance.new("TextLabel")
-gamePassStatus.AnchorPoint = Vector2.new(1, 0)
-gamePassStatus.Size = UDim2.new(0, 300, 0, 22)
-gamePassStatus.Position = UDim2.new(1, -15, 0, 43)
-gamePassStatus.BackgroundTransparency = 1
-gamePassStatus.Text = ""
-gamePassStatus.TextColor3 = THEME.TextMuted
-gamePassStatus.Font = FONT_BOLD
-gamePassStatus.TextSize = 10
-gamePassStatus.TextXAlignment = Enum.TextXAlignment.Right
-gamePassStatus.Parent = gamePassPanel
-
-local function setGamePassStatus(text, color)
-	gamePassStatus.Text = text
-	gamePassStatus.TextColor3 = color or THEME.TextMuted
-
-	task.delay(2, function()
-		if gamePassStatus.Parent and gamePassStatus.Text == text then
-			gamePassStatus.Text = ""
-		end
-	end)
+	-- X1 -> X2
+	-- X2 -> X3
+	-- X3 -> X4
+	-- X4 -> X5
+	-- X5 -> X5 (เพิ่มเวลา)
+	return math.clamp(currentLuck + 1, 2, 5)
 end
 
-local gamePassScroll = Instance.new("ScrollingFrame")
-gamePassScroll.Name = "GamePassScroll"
-gamePassScroll.Size = UDim2.new(1, -30, 1, -78)
-gamePassScroll.Position = UDim2.fromOffset(15, 73)
-gamePassScroll.BackgroundTransparency = 1
-gamePassScroll.BorderSizePixel = 0
-gamePassScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-gamePassScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-gamePassScroll.ScrollBarThickness = 2
-gamePassScroll.ScrollBarImageColor3 = Color3.fromRGB(88, 123, 140)
-gamePassScroll.Parent = gamePassPanel
-
-local gamePassLayout = Instance.new("UIListLayout")
-gamePassLayout.Padding = UDim.new(0, 10)
-gamePassLayout.SortOrder = Enum.SortOrder.LayoutOrder
-gamePassLayout.Parent = gamePassScroll
+local function syncServerLuckState()
+	serverLuckCurrent = getCurrentServerLuck()
+end
 
 local function updateServerLuckButton(item)
 	local data = gamePassButtonIndex[item.Id]
 
-	if not data then
+	if not data or not item.Luck then
 		return
 	end
 
-	if serverLuckStep == 0 then
+	local currentLuck = getCurrentServerLuck()
+	local nextLuck = math.clamp(currentLuck + 1, 2, 5)
+
+	-- X5 แล้ว = ซื้อเพิ่มเวลา
+	if currentLuck >= 5 then
+		if item.Luck == 5 then
+			data.Button.Text = ""
+			data.NameLabel.Text = "Server Luck X5"
+			data.ActionLabel.Text = "+" .. tostring(serverLuckMinutes) .. " MIN"
+			data.ActionLabel.BackgroundColor3 = data.Color
+		end
+
+		return
+	end
+
+	-- แสดงเฉพาะขั้นถัดไป
+	if item.Luck == nextLuck then
 		data.Button.Text = ""
-		data.NameLabel.Text = item.Name
+		data.NameLabel.Text = "Server Luck X" .. tostring(item.Luck)
 		data.ActionLabel.Text = "BUY"
 		data.ActionLabel.BackgroundColor3 = data.Color
-	elseif serverLuckStep == 1 then
-		data.Button.Text = ""
-		data.NameLabel.Text = "Server Luck X3"
-		data.ActionLabel.Text = "BUY"
-		data.ActionLabel.BackgroundColor3 = data.Color
-	elseif serverLuckStep == 2 then
-		data.Button.Text = ""
-		data.NameLabel.Text = "Server Luck X4"
-		data.ActionLabel.Text = "BUY"
-		data.ActionLabel.BackgroundColor3 = data.Color
-	elseif serverLuckStep == 3 then
-		data.Button.Text = ""
-		data.NameLabel.Text = "Server Luck X5"
-		data.ActionLabel.Text = "BUY"
-		data.ActionLabel.BackgroundColor3 = data.Color
-	else
-		data.Button.Text = ""
-		data.NameLabel.Text = "Server Luck X5"
-		data.ActionLabel.Text = "+" .. tostring(serverLuckMinutes) .. " MIN"
-		data.ActionLabel.BackgroundColor3 = data.Color
+	end
+end
+
+local function refreshServerLuckButtons()
+	syncServerLuckState()
+
+	local currentLuck = serverLuckCurrent
+	local nextLuck = math.clamp(currentLuck + 1, 2, 5)
+
+	for _, item in ipairs(gamePassItems[3].Items) do
+		local data = gamePassButtonIndex[item.Id]
+
+		if data then
+			-- X5 = แสดง X5 เพื่อเพิ่มเวลา
+			-- ต่ำกว่า X5 = แสดงเฉพาะขั้นถัดไป
+			if currentLuck >= 5 then
+				data.Button.Visible = item.Luck == 5
+			else
+				data.Button.Visible = item.Luck == nextLuck
+			end
+
+			updateServerLuckButton(item)
+		end
 	end
 end
 
@@ -3162,55 +3132,81 @@ local function createGamePassButton(parent, item, accentColor, order)
 	end)
 
 	button.MouseButton1Click:Connect(function()
-		if item.Once then
-			if checkOnceItemOwned(item) then
-				actionLabel.Text = "BOUGHT"
-				actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
-				setGamePassStatus(string.upper(item.Name) .. " ALREADY OWNED", Color3.fromRGB(77, 225, 132))
-				return
-			end
-		end
 
+		----------------------------------------------------------------
+		-- SERVER LUCK
+		----------------------------------------------------------------
 		if item.Luck then
-			if serverLuckStep < 4 then
-				local expectedStep = serverLuckStep + 1
 
-				if item.Luck ~= expectedStep + 1 then
-					setGamePassStatus("BUY THE NEXT SERVER LUCK STEP", Color3.fromRGB(255, 180, 90))
+			local currentLuck = getCurrentServerLuck()
+			local expectedLuck = math.clamp(currentLuck + 1, 2, 5)
+
+			-- X5 แล้ว = ซื้อเพิ่มเวลา
+			if currentLuck >= 5 then
+				if item.Luck ~= 5 then
+					setGamePassStatus(
+						"BUY THE NEXT SERVER LUCK STEP",
+						Color3.fromRGB(255, 180, 90)
+					)
 					return
 				end
 
 				fireProductSignal(item.Id)
 
-				serverLuckStep += 1
-				serverLuckMinutes = 15
+				serverLuckMinutes += 15
+				serverLuckCurrent = 5
 
-				for _, luckItem in ipairs(gamePassItems[3].Items) do
-					updateServerLuckButton(luckItem)
-				end
+				refreshServerLuckButtons()
 
 				setGamePassStatus(
-					"SERVER LUCK X" .. tostring(item.Luck) .. " • 15 MIN",
+					"SERVER LUCK X5 • " .. tostring(serverLuckMinutes) .. " MIN",
 					Color3.fromRGB(77, 225, 132)
 				)
 
 				return
 			end
 
-			fireProductSignal(item.Id)
-
-			serverLuckMinutes += 15
-
-			for _, luckItem in ipairs(gamePassItems[3].Items) do
-				updateServerLuckButton(luckItem)
+			-- ต้องซื้อ step ถัดไปเท่านั้น
+			if item.Luck ~= expectedLuck then
+				setGamePassStatus(
+					"BUY THE NEXT SERVER LUCK STEP",
+					Color3.fromRGB(255, 180, 90)
+				)
+				return
 			end
 
+			fireProductSignal(item.Id)
+
+			-- อัปเดต local state ทันที
+			-- เพื่อให้ UI เปลี่ยนทันที ไม่ต้องรอ HUD
+			serverLuckCurrent = item.Luck
+			serverLuckMinutes = 15
+
+			refreshServerLuckButtons()
+
 			setGamePassStatus(
-				"SERVER LUCK X5 • " .. tostring(serverLuckMinutes) .. " MIN",
+				"SERVER LUCK X" .. tostring(item.Luck) .. " • 15 MIN",
 				Color3.fromRGB(77, 225, 132)
 			)
 
 			return
+		end
+
+		----------------------------------------------------------------
+		-- NORMAL GAME PASS / PRODUCT
+		----------------------------------------------------------------
+		if item.Once then
+			if checkOnceItemOwned(item) then
+				actionLabel.Text = "BOUGHT"
+				actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+
+				setGamePassStatus(
+					string.upper(item.Name) .. " ALREADY OWNED",
+					Color3.fromRGB(77, 225, 132)
+				)
+
+				return
+			end
 		end
 
 		fireProductSignal(item.Id)
@@ -3225,7 +3221,8 @@ local function createGamePassButton(parent, item, accentColor, order)
 
 					if owned then
 						actionLabel.Text = "BOUGHT"
-						actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+						actionLabel.BackgroundColor3 =
+							Color3.fromRGB(77, 190, 112)
 					else
 						actionLabel.Text = "BUY"
 						actionLabel.BackgroundColor3 = accentColor
@@ -3254,7 +3251,8 @@ local function createGamePassButton(parent, item, accentColor, order)
 		task.spawn(function()
 			if checkOnceItemOwned(item) then
 				actionLabel.Text = "BOUGHT"
-				actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+				actionLabel.BackgroundColor3 =
+					Color3.fromRGB(77, 190, 112)
 			end
 		end)
 	end
@@ -3335,7 +3333,10 @@ local function createGamePassZone(zone, zoneOrder)
 		end)
 	end
 
-	listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCardHeight)
+	listLayout:GetPropertyChangedSignal(
+		"AbsoluteContentSize"
+	):Connect(updateCardHeight)
+
 	updateCardHeight()
 
 	return card
@@ -3346,6 +3347,45 @@ for zoneOrder, zone in ipairs(gamePassItems) do
 end
 
 registerPage("Game Pass", {gamePassPage})
+
+----------------------------------------------------------------
+-- SERVER LUCK HUD SYNC
+----------------------------------------------------------------
+
+local function refreshServerLuckPurchaseVisibility()
+	local currentLuck = getCurrentServerLuck()
+
+	serverLuckCurrent = currentLuck
+
+	local nextLuck = math.clamp(currentLuck + 1, 2, 5)
+
+	for _, item in ipairs(gamePassItems[3].Items) do
+		local data = gamePassButtonIndex[item.Id]
+
+		if data then
+			if currentLuck >= 5 then
+				-- X5 แล้ว แสดง X5 สำหรับเพิ่มเวลา
+				data.Button.Visible = item.Luck == 5
+			else
+				-- แสดงเฉพาะ step ถัดไป
+				data.Button.Visible = item.Luck == nextLuck
+			end
+		end
+	end
+
+	for _, item in ipairs(gamePassItems[3].Items) do
+		updateServerLuckButton(item)
+	end
+end
+
+refreshServerLuckPurchaseVisibility()
+
+task.spawn(function()
+	while gui.Parent do
+		task.wait(0.5)
+		refreshServerLuckPurchaseVisibility()
+	end
+end)
 
 local function refreshServerLuckPurchaseVisibility()
 	local screen = playerGui:FindFirstChild("GameScreenGui")
