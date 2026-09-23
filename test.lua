@@ -2879,20 +2879,20 @@ local gamePassItems = {
 		Category = "MONEY",
 		Color = Color3.fromRGB(255, 195, 65),
 		Items = {
-			{Name = "+1000 Money", Id = 3304032773},
-			{Name = "+10K Money", Id = 3304032980},
-			{Name = "+100K Money", Id = 3304033107},
-			{Name = "+1M Money", Id = 3304033285},
+			{Name = "Small Money", Id = 3304032773},
+			{Name = "Medium Money", Id = 3304032980},
+			{Name = "Big Money", Id = 3304033107},
+			{Name = "Huge Money", Id = 3304033285},
 		}
 	},
 	{
 		Category = "GEMS",
 		Color = Color3.fromRGB(105, 215, 255),
 		Items = {
-			{Name = "+100 Gems", Id = 3304033536},
-			{Name = "+500 Gems", Id = 3304033742},
-			{Name = "+1000 Gems", Id = 3304033861},
-			{Name = "+10K Gems", Id = 3304033993},
+			{Name = "Small Gems", Id = 3304033536},
+			{Name = "Medium Gems", Id = 3304033742},
+			{Name = "Big Gems", Id = 3304033861},
+			{Name = "Huge Gems", Id = 3304033993},
 		}
 	},
 }
