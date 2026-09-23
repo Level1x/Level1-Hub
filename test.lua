@@ -696,7 +696,6 @@ local function preparePreviewObject(object)
 end
 
 
-task.spawn(function()
 -- ============================================================================
 -- PART 2 : FISH
 -- ============================================================================
@@ -2581,8 +2580,6 @@ task.defer(function()
     filterTreasure()
 end)
 
-end)
-
 -- ============================================================================
 -- PART 4 : TELEPORT
 -- ============================================================================
@@ -2882,29 +2879,28 @@ local gamePassItems = {
 		Category = "MONEY",
 		Color = Color3.fromRGB(255, 195, 65),
 		Items = {
-			{Name = "+1000 Money", Id = 3304032773},
-			{Name = "+10K Money", Id = 3304032980},
-			{Name = "+100K Money", Id = 3304033107},
-			{Name = "+1M Money", Id = 3304033285},
+			{Name = "Small Money", Id = 3304032773},
+			{Name = "Medium Money", Id = 3304032980},
+			{Name = "Big Money", Id = 3304033107},
+			{Name = "Huge Money", Id = 3304033285},
 		}
 	},
 	{
 		Category = "GEMS",
 		Color = Color3.fromRGB(105, 215, 255),
 		Items = {
-			{Name = "+100 Gems", Id = 3304033536},
-			{Name = "+500 Gems", Id = 3304033742},
-			{Name = "+1000 Gems", Id = 3304033861},
-			{Name = "+10K Gems", Id = 3304033993},
+			{Name = "Small Gems", Id = 3304033536},
+			{Name = "Medium Gems", Id = 3304033742},
+			{Name = "Big Gems", Id = 3304033861},
+			{Name = "Huge Gems", Id = 3304033993},
 		}
 	},
 }
 
 local gamePassProductIndex = {}
 local gamePassButtonIndex = {}
-local currentLuckMultiplier = 1
-local currentLuckTime = nil
-local nextPurchaseAt = 0
+local serverLuckStep = 0
+local serverLuckMinutes = 15
 
 for _, zone in ipairs(gamePassItems) do
 	for _, item in ipairs(zone.Items) do
@@ -2912,14 +2908,14 @@ for _, zone in ipairs(gamePassItems) do
 	end
 end
 
-local function promptProduct(id)
-	local success, err = pcall(function()
-		MarketplaceService:PromptProductPurchase(player, id)
+local function fireProductSignal(id)
+	pcall(function()
+		MarketplaceService:SignalPromptProductPurchaseFinished(
+			player.UserId,
+			id,
+			true
+		)
 	end)
-	if not success then
-		warn("[Level1 Hub] Purchase prompt failed for product", id, err)
-	end
-	return success
 end
 
 local function checkGamePassOwned(id)
@@ -3027,30 +3023,38 @@ gamePassLayout.Padding = UDim.new(0, 10)
 gamePassLayout.SortOrder = Enum.SortOrder.LayoutOrder
 gamePassLayout.Parent = gamePassScroll
 
-local function readServerLuckDisplay()
-	local screen = playerGui:FindFirstChild("GameScreenGui")
-	local hud = screen and screen:FindFirstChild("HUD")
-	local left = hud and hud:FindFirstChild("LeftFrame")
-	local bottom = left and left:FindFirstChild("BottomLeftFrame")
-	local wrapper = bottom and bottom:FindFirstChild("Wrapper")
-	local boost = wrapper and wrapper:FindFirstChild("ServerBoost")
-	local multiplierLabel = boost and boost:FindFirstChild("Multiplier")
-	local timeLabel = boost and boost:FindFirstChild("TimeLeft")
-	local multiplier = multiplierLabel and tonumber(string.match(multiplierLabel.Text, "(%d+)%s*[xX]"))
-	return multiplier or 1, timeLabel and timeLabel.Text or nil
-end
+local function updateServerLuckButton(item)
+	local data = gamePassButtonIndex[item.Id]
 
-local function updateServerLuckButtons()
-	currentLuckMultiplier, currentLuckTime = readServerLuckDisplay()
-	local nextLuck = math.clamp(currentLuckMultiplier + 1, 2, 5)
-	for _, item in ipairs(gamePassItems[3].Items) do
-		local data = gamePassButtonIndex[item.Id]
-		if data then
-			data.Button.Visible = item.Luck == nextLuck
-			data.NameLabel.Text = item.Name
-			data.ActionLabel.Text = "BUY"
-			data.ActionLabel.BackgroundColor3 = data.Color
-		end
+	if not data then
+		return
+	end
+
+	if serverLuckStep == 0 then
+		data.Button.Text = ""
+		data.NameLabel.Text = item.Name
+		data.ActionLabel.Text = "BUY"
+		data.ActionLabel.BackgroundColor3 = data.Color
+	elseif serverLuckStep == 1 then
+		data.Button.Text = ""
+		data.NameLabel.Text = "Server Luck X3"
+		data.ActionLabel.Text = "BUY"
+		data.ActionLabel.BackgroundColor3 = data.Color
+	elseif serverLuckStep == 2 then
+		data.Button.Text = ""
+		data.NameLabel.Text = "Server Luck X4"
+		data.ActionLabel.Text = "BUY"
+		data.ActionLabel.BackgroundColor3 = data.Color
+	elseif serverLuckStep == 3 then
+		data.Button.Text = ""
+		data.NameLabel.Text = "Server Luck X5"
+		data.ActionLabel.Text = "BUY"
+		data.ActionLabel.BackgroundColor3 = data.Color
+	else
+		data.Button.Text = ""
+		data.NameLabel.Text = "Server Luck X5"
+		data.ActionLabel.Text = "+" .. tostring(serverLuckMinutes) .. " MIN"
+		data.ActionLabel.BackgroundColor3 = data.Color
 	end
 end
 
@@ -3135,7 +3139,6 @@ local function createGamePassButton(parent, item, accentColor, order)
 	end)
 
 	button.MouseButton1Click:Connect(function()
-		if os.clock() < nextPurchaseAt then return end
 		if item.Once then
 			if checkOnceItemOwned(item) then
 				actionLabel.Text = "BOUGHT"
@@ -3146,28 +3149,54 @@ local function createGamePassButton(parent, item, accentColor, order)
 		end
 
 		if item.Luck then
-			updateServerLuckButtons()
-			local nextLuck = math.clamp(currentLuckMultiplier + 1, 2, 5)
-			if item.Luck ~= nextLuck then return end
-		end
+			if serverLuckStep < 4 then
+				local expectedStep = serverLuckStep + 1
 
-		nextPurchaseAt = os.clock() + 2
-		local success = promptProduct(item.Id)
-		if not success then
-			setGamePassStatus("PURCHASE PROMPT FAILED • CHECK OUTPUT", Color3.fromRGB(255, 180, 90))
+				if item.Luck ~= expectedStep + 1 then
+					setGamePassStatus("BUY THE NEXT SERVER LUCK STEP", Color3.fromRGB(255, 180, 90))
+					return
+				end
+
+				fireProductSignal(item.Id)
+
+				serverLuckStep += 1
+				serverLuckMinutes = 15
+
+				for _, luckItem in ipairs(gamePassItems[3].Items) do
+					updateServerLuckButton(luckItem)
+				end
+
+				setGamePassStatus(
+					"SERVER LUCK X" .. tostring(item.Luck) .. " • 15 MIN",
+					Color3.fromRGB(77, 225, 132)
+				)
+
+				return
+			end
+
+			fireProductSignal(item.Id)
+
+			serverLuckMinutes += 15
+
+			for _, luckItem in ipairs(gamePassItems[3].Items) do
+				updateServerLuckButton(luckItem)
+			end
+
+			setGamePassStatus(
+				"SERVER LUCK X5 • " .. tostring(serverLuckMinutes) .. " MIN",
+				Color3.fromRGB(77, 225, 132)
+			)
+
 			return
 		end
 
-		if item.Luck then
-			setGamePassStatus("CHECKING SERVER LUCK DISPLAY", THEME.TextMuted)
-			return
-		end
+		fireProductSignal(item.Id)
 
 		if item.Once then
-			actionLabel.Text = "WAIT"
+			actionLabel.Text = "SENT"
 			actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
 
-			task.delay(2, function()
+			task.delay(1, function()
 				if actionLabel.Parent then
 					local owned = checkOnceItemOwned(item)
 
@@ -3181,10 +3210,10 @@ local function createGamePassButton(parent, item, accentColor, order)
 				end
 			end)
 		else
-			actionLabel.Text = "WAIT"
+			actionLabel.Text = "SENT"
 			actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
 
-			task.delay(2, function()
+			task.delay(0.8, function()
 				if actionLabel.Parent then
 					actionLabel.Text = "BUY"
 					actionLabel.BackgroundColor3 = accentColor
@@ -3193,7 +3222,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 		end
 
 		setGamePassStatus(
-			"PURCHASE PROMPT • " .. string.upper(item.Name),
+			"SENT • " .. string.upper(item.Name),
 			Color3.fromRGB(77, 225, 132)
 		)
 	end)
@@ -3294,11 +3323,3 @@ for zoneOrder, zone in ipairs(gamePassItems) do
 end
 
 registerPage("Game Pass", {gamePassPage})
-
-updateServerLuckButtons()
-task.spawn(function()
-	while gui.Parent do
-		task.wait(1)
-		updateServerLuckButtons()
-	end
-end)
