@@ -2922,8 +2922,6 @@ local gamePassItems = {
 
 local gamePassProductIndex = {}
 local gamePassButtonIndex = {}
-
--- Server Luck state
 local serverLuckMinutes = 15
 
 for _, zone in ipairs(gamePassItems) do
@@ -2947,10 +2945,107 @@ local function checkGamePassOwned(id)
 		return MarketplaceService:UserOwnsGamePassAsync(player.UserId, id)
 	end)
 
-	return ok and result
+	if ok then
+		return result == true
+	end
+
+	return false
 end
 
-local function getCurrentServerLuck()
+local function checkOnceItemOwned(item)
+	if not item.Once then
+		return false
+	end
+
+	return checkGamePassOwned(item.Id)
+end
+
+local gamePassPage = Instance.new("Frame")
+gamePassPage.Name = "GamePassPage"
+gamePassPage.Size = UDim2.new(1, -40, 1, -130)
+gamePassPage.Position = UDim2.new(0, 20, 0, 120)
+gamePassPage.BackgroundTransparency = 1
+gamePassPage.Visible = false
+gamePassPage.Parent = frame
+
+pages["Game Pass"] = gamePassPage
+
+local gamePassPanel = Instance.new("Frame")
+gamePassPanel.Size = UDim2.new(1, 0, 1, 0)
+gamePassPanel.BackgroundColor3 = THEME.Sidebar
+gamePassPanel.BorderSizePixel = 0
+gamePassPanel.Parent = gamePassPage
+
+Instance.new("UICorner", gamePassPanel).CornerRadius = UDim.new(0, 12)
+addSurfaceGradient(gamePassPanel, 80)
+
+local gamePassStroke = Instance.new("UIStroke", gamePassPanel)
+gamePassStroke.Color = THEME.Border
+gamePassStroke.Thickness = 1
+
+local gamePassTitle = Instance.new("TextLabel")
+gamePassTitle.Size = UDim2.new(1, -30, 0, 30)
+gamePassTitle.Position = UDim2.fromOffset(15, 15)
+gamePassTitle.BackgroundTransparency = 1
+gamePassTitle.Text = "GAME PASS"
+gamePassTitle.TextColor3 = THEME.Text
+gamePassTitle.Font = FONT_BOLD
+gamePassTitle.TextSize = 16
+gamePassTitle.TextXAlignment = Enum.TextXAlignment.Left
+gamePassTitle.Parent = gamePassPanel
+
+local gamePassInfo = Instance.new("TextLabel")
+gamePassInfo.Size = UDim2.new(1, -30, 0, 22)
+gamePassInfo.Position = UDim2.fromOffset(15, 43)
+gamePassInfo.BackgroundTransparency = 1
+gamePassInfo.Text = "PACKS • ITEMS • SERVER LUCK • MONEY • GEMS"
+gamePassInfo.TextColor3 = THEME.TextMuted
+gamePassInfo.Font = FONT_REGULAR
+gamePassInfo.TextSize = 10
+gamePassInfo.TextXAlignment = Enum.TextXAlignment.Left
+gamePassInfo.Parent = gamePassPanel
+
+local gamePassStatus = Instance.new("TextLabel")
+gamePassStatus.AnchorPoint = Vector2.new(1, 0)
+gamePassStatus.Size = UDim2.new(0, 300, 0, 22)
+gamePassStatus.Position = UDim2.new(1, -15, 0, 43)
+gamePassStatus.BackgroundTransparency = 1
+gamePassStatus.Text = ""
+gamePassStatus.TextColor3 = THEME.TextMuted
+gamePassStatus.Font = FONT_BOLD
+gamePassStatus.TextSize = 10
+gamePassStatus.TextXAlignment = Enum.TextXAlignment.Right
+gamePassStatus.Parent = gamePassPanel
+
+local function setGamePassStatus(text, color)
+	gamePassStatus.Text = text
+	gamePassStatus.TextColor3 = color or THEME.TextMuted
+
+	task.delay(2, function()
+		if gamePassStatus.Parent and gamePassStatus.Text == text then
+			gamePassStatus.Text = ""
+		end
+	end)
+end
+
+local gamePassScroll = Instance.new("ScrollingFrame")
+gamePassScroll.Name = "GamePassScroll"
+gamePassScroll.Size = UDim2.new(1, -30, 1, -78)
+gamePassScroll.Position = UDim2.fromOffset(15, 73)
+gamePassScroll.BackgroundTransparency = 1
+gamePassScroll.BorderSizePixel = 0
+gamePassScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+gamePassScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+gamePassScroll.ScrollBarThickness = 2
+gamePassScroll.ScrollBarImageColor3 = Color3.fromRGB(88, 123, 140)
+gamePassScroll.Parent = gamePassPanel
+
+local gamePassLayout = Instance.new("UIListLayout")
+gamePassLayout.Padding = UDim.new(0, 10)
+gamePassLayout.SortOrder = Enum.SortOrder.LayoutOrder
+gamePassLayout.Parent = gamePassScroll
+
+local function getServerLuckMultiplier()
 	local screen = playerGui:FindFirstChild("GameScreenGui")
 	local hud = screen and screen:FindFirstChild("HUD")
 	local left = hud and hud:FindFirstChild("LeftFrame")
@@ -2959,67 +3054,33 @@ local function getCurrentServerLuck()
 	local boost = wrapper and wrapper:FindFirstChild("ServerBoost")
 	local multiplierLabel = boost and boost:FindFirstChild("Multiplier")
 
-	if not multiplierLabel or not multiplierLabel:IsA("TextLabel") then
-		return 1
-	end
-
-	local multiplier = tonumber(
-		multiplierLabel.Text:match("(%d+)%s*[xX]")
-	)
-
-	if not multiplier then
-		return 1
-	end
-
-	return math.clamp(multiplier, 1, 5)
+	return multiplierLabel and tonumber(multiplierLabel.Text:match("(%d+)%s*[xX]")) or 1
 end
 
 local function updateServerLuckButton(item)
 	local data = gamePassButtonIndex[item.Id]
 
-	if not data or not item.Luck then
+	if not data then
 		return
 	end
 
-	local currentLuck = getCurrentServerLuck()
-	local nextLuck = math.clamp(currentLuck + 1, 2, 5)
+	local multiplier = getServerLuckMultiplier()
 
-	if currentLuck >= 5 then
-		if item.Luck == 5 then
-			data.Button.Text = ""
-			data.NameLabel.Text = "Server Luck X5"
-			data.ActionLabel.Text = "+" .. tostring(serverLuckMinutes) .. " MIN"
-			data.ActionLabel.BackgroundColor3 = data.Color
-		end
-		return
-	end
+	data.Button.Text = ""
+	data.ActionLabel.BackgroundColor3 = data.Color
 
-	if item.Luck == nextLuck then
-		data.Button.Text = ""
-		data.NameLabel.Text = "Server Luck X" .. tostring(item.Luck)
+	if multiplier >= 5 then
+		data.NameLabel.Text = "Server Luck X5"
+		data.ActionLabel.Text = "+" .. tostring(serverLuckMinutes) .. " MIN"
+	elseif item.Luck == multiplier + 1 then
+		data.NameLabel.Text = item.Name
 		data.ActionLabel.Text = "BUY"
-		data.ActionLabel.BackgroundColor3 = data.Color
+	else
+		data.NameLabel.Text = item.Name
+		data.ActionLabel.Text = "BUY"
 	end
 end
 
-local function refreshServerLuckButtons()
-	local currentLuck = getCurrentServerLuck()
-	local nextLuck = math.clamp(currentLuck + 1, 2, 5)
-
-	for _, item in ipairs(gamePassItems[3].Items) do
-		local data = gamePassButtonIndex[item.Id]
-
-		if data then
-			if currentLuck >= 5 then
-				data.Button.Visible = item.Luck == 5
-			else
-				data.Button.Visible = item.Luck == nextLuck
-			end
-
-			updateServerLuckButton(item)
-		end
-	end
-end
 local function createGamePassButton(parent, item, accentColor, order)
 	local button = Instance.new("TextButton")
 	button.Name = "Purchase_" .. tostring(item.Id)
@@ -3101,72 +3162,56 @@ local function createGamePassButton(parent, item, accentColor, order)
 	end)
 
 	button.MouseButton1Click:Connect(function()
-
-		----------------------------------------------------------------
-		----------------------------------------------------------------
-		-- SERVER LUCK
-		----------------------------------------------------------------
-		if item.Luck then
-			local currentLuck = getCurrentServerLuck()
-			local expectedLuck = math.clamp(currentLuck + 1, 2, 5)
-
-			-- X5 แล้ว = ซื้อเพิ่มเวลา
-			if currentLuck >= 5 then
-				if item.Luck ~= 5 then
-					setGamePassStatus(
-						"BUY THE NEXT SERVER LUCK STEP",
-						Color3.fromRGB(255, 180, 90)
-					)
-					return
-				end
-
-				fireProductSignal(item.Id)
-				serverLuckMinutes += 15
-				refreshServerLuckButtons()
-
-				setGamePassStatus(
-					"SERVER LUCK X5 • " .. tostring(serverLuckMinutes) .. " MIN",
-					Color3.fromRGB(77, 225, 132)
-				)
-
-				return
-			end
-
-			-- ต้องซื้อ step ถัดไปเท่านั้น
-			if item.Luck ~= expectedLuck then
-				setGamePassStatus(
-					"BUY THE NEXT SERVER LUCK STEP",
-					Color3.fromRGB(255, 180, 90)
-				)
-				return
-			end
-
-			fireProductSignal(item.Id)
-			serverLuckMinutes = 15
-
-			setGamePassStatus(
-				"SERVER LUCK X" .. tostring(item.Luck) .. " • 15 MIN",
-				Color3.fromRGB(77, 225, 132)
-			)
-
-			return
-		end
-
-		----------------------------------------------------------------
-		-- NORMAL GAME PASS / PRODUCT
-		----------------------------------------------------------------
 		if item.Once then
 			if checkOnceItemOwned(item) then
 				actionLabel.Text = "BOUGHT"
 				actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+				setGamePassStatus(string.upper(item.Name) .. " ALREADY OWNED", Color3.fromRGB(77, 225, 132))
+				return
+			end
+		end
+
+		if item.Luck then
+			local multiplier = getServerLuckMultiplier()
+
+			if multiplier < 5 then
+				local expectedMultiplier = multiplier + 1
+
+				if item.Luck ~= expectedMultiplier then
+					setGamePassStatus("BUY THE NEXT SERVER LUCK STEP", Color3.fromRGB(255, 180, 90))
+					return
+				end
+
+				fireProductSignal(item.Id)
+
+				serverLuckMinutes = 15
+
+				for _, luckItem in ipairs(gamePassItems[3].Items) do
+					updateServerLuckButton(luckItem)
+				end
 
 				setGamePassStatus(
-					string.upper(item.Name) .. " ALREADY OWNED",
+					"SERVER LUCK X" .. tostring(item.Luck) .. " • 15 MIN",
 					Color3.fromRGB(77, 225, 132)
 				)
 
 				return
 			end
+
+			fireProductSignal(item.Id)
+
+			serverLuckMinutes += 15
+
+			for _, luckItem in ipairs(gamePassItems[3].Items) do
+				updateServerLuckButton(luckItem)
+			end
+
+			setGamePassStatus(
+				"SERVER LUCK X5 • " .. tostring(serverLuckMinutes) .. " MIN",
+				Color3.fromRGB(77, 225, 132)
+			)
+
+			return
 		end
 
 		fireProductSignal(item.Id)
@@ -3181,8 +3226,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 
 					if owned then
 						actionLabel.Text = "BOUGHT"
-						actionLabel.BackgroundColor3 =
-							Color3.fromRGB(77, 190, 112)
+						actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
 					else
 						actionLabel.Text = "BUY"
 						actionLabel.BackgroundColor3 = accentColor
@@ -3211,8 +3255,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 		task.spawn(function()
 			if checkOnceItemOwned(item) then
 				actionLabel.Text = "BOUGHT"
-				actionLabel.BackgroundColor3 =
-					Color3.fromRGB(77, 190, 112)
+				actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
 			end
 		end)
 	end
@@ -3293,10 +3336,7 @@ local function createGamePassZone(zone, zoneOrder)
 		end)
 	end
 
-	listLayout:GetPropertyChangedSignal(
-		"AbsoluteContentSize"
-	):Connect(updateCardHeight)
-
+	listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCardHeight)
 	updateCardHeight()
 
 	return card
@@ -3308,35 +3348,22 @@ end
 
 registerPage("Game Pass", {gamePassPage})
 
-----------------------------------------------------------------
-----------------------------------------------------------------
--- SERVER LUCK HUD SYNC
-----------------------------------------------------------------
-
 local function refreshServerLuckPurchaseVisibility()
-	local currentLuck = getCurrentServerLuck()
-	local nextLuck = math.clamp(currentLuck + 1, 2, 5)
+	local multiplier = getServerLuckMultiplier()
+	local visibleLuck = math.clamp(multiplier + 1, 2, 5)
 
 	for _, item in ipairs(gamePassItems[3].Items) do
 		local data = gamePassButtonIndex[item.Id]
-
 		if data then
-			if currentLuck >= 5 then
-				data.Button.Visible = item.Luck == 5
-			else
-				data.Button.Visible = item.Luck == nextLuck
-			end
-
-			updateServerLuckButton(item)
+			data.Button.Visible = item.Luck == visibleLuck
 		end
 	end
 end
 
 refreshServerLuckPurchaseVisibility()
-
 task.spawn(function()
 	while gui.Parent do
-		task.wait(0.5)
+		task.wait(1)
 		refreshServerLuckPurchaseVisibility()
 	end
 end)
