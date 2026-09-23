@@ -2727,6 +2727,29 @@ local function createZoneCard(zone, zoneOrder)
 	zoneTitle.TextXAlignment = Enum.TextXAlignment.Left
 	zoneTitle.Parent = card
 
+	if zone.Category == "SERVER LUCK" then
+		local function refreshServerLuckTitle()
+			local screen = playerGui:FindFirstChild("GameScreenGui")
+			local hud = screen and screen:FindFirstChild("HUD")
+			local left = hud and hud:FindFirstChild("LeftFrame")
+			local bottom = left and left:FindFirstChild("BottomLeftFrame")
+			local wrapper = bottom and bottom:FindFirstChild("Wrapper")
+			local boost = wrapper and wrapper:FindFirstChild("ServerBoost")
+			local label = boost and boost:FindFirstChild("Multiplier")
+			local value = label and label:IsA("TextLabel")
+				and tonumber(label.Text:match("(%d+)%s*[xX]"))
+			zoneTitle.Text = value and ("SERVER LUCK • " .. value .. "X ACTIVE") or "SERVER LUCK"
+		end
+
+		refreshServerLuckTitle()
+		task.spawn(function()
+			while card.Parent and gui.Parent do
+				task.wait(1)
+				refreshServerLuckTitle()
+			end
+		end)
+	end
+
 	local divider = Instance.new("Frame")
 	divider.Size = UDim2.new(1, -28, 0, 1)
 	divider.Position = UDim2.fromOffset(14, 51)
