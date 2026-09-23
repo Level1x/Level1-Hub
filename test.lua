@@ -2834,17 +2834,110 @@ registerPage("Teleport", {teleportPage})
 -- PART 5 : GAME PASS
 -- ============================================================================
 
-local gamePassItems = {
-	{Name = "+1000 Money", Id = 3304032773, Signal = "Product"},
-	{Name = "+10K Money", Id = 3304032980, Signal = "Product"},
-	{Name = "+100K Money", Id = 3304033107, Signal = "Product"},
-	{Name = "+1M Money", Id = 3304033285, Signal = "Product"},
 
-	{Name = "+100 Gems", Id = 3304033536, Signal = "Product"},
-	{Name = "+500 Gems", Id = 3304033742, Signal = "Product"},
-	{Name = "+1000 Gems", Id = 3304033861, Signal = "Product"},
-	{Name = "+10K Gems", Id = 3304033993, Signal = "Product"},
+local gamePassItems = {
+	{
+		Category = "PACKS",
+		Color = Color3.fromRGB(255, 195, 65),
+		Items = {
+			{Name = "VIP Captain Pack", Id = 3431211600, Once = true},
+			{Name = "Beginner Pack", Id = 3411418367, Once = true},
+			{Name = "Starter Pack", Id = 3305950020, Once = true},
+			{Name = "Pro Pack", Id = 3305950348, Once = true},
+			{Name = "Master Pack", Id = 3305950655, Once = true},
+			{Name = "Robo Pack", Id = 3594686829, Once = true},
+			{Name = "Pirate Pack", Id = 3411251432, Once = true},
+			{Name = "Ultrasound Scanner", Id = 3512684405, Once = true},
+		}
+	},
+	{
+		Category = "ITEMS",
+		Color = Color3.fromRGB(105, 215, 255),
+		Items = {
+			{Name = "+1 Divine Stone", Id = 3438017454},
+			{Name = "+1 Prismatic Ultra Stone", Id = 3438019337},
+			{Name = "+10 Free Spin", Id = 3304014672},
+			{Name = "+30 Free Spin", Id = 3304015042},
+			{Name = "+1 Premium Spin", Id = 3304015387},
+			{Name = "+10 Premium Spin", Id = 3304015647},
+			{Name = "Daily Rewards Skip 1 Day", Id = 3304013697},
+			{Name = "Daily Rewards Skip All Day", Id = 3304014222},
+			{Name = "Time Rewards 2 Skip", Id = 3304016005},
+			{Name = "Time Rewards All Skip", Id = 3304016317},
+		}
+	},
+	{
+		Category = "SERVER LUCK",
+		Color = Color3.fromRGB(180, 105, 255),
+		Items = {
+			{Name = "Server Luck X2", Id = 3412752768, Luck = 2},
+			{Name = "Server Luck X3", Id = 3412752883, Luck = 3},
+			{Name = "Server Luck X4", Id = 3412753011, Luck = 4},
+			{Name = "Server Luck X5", Id = 3412753155, Luck = 5},
+		}
+	},
+	{
+		Category = "MONEY",
+		Color = Color3.fromRGB(255, 195, 65),
+		Items = {
+			{Name = "+1000 Money", Id = 3304032773},
+			{Name = "+10K Money", Id = 3304032980},
+			{Name = "+100K Money", Id = 3304033107},
+			{Name = "+1M Money", Id = 3304033285},
+		}
+	},
+	{
+		Category = "GEMS",
+		Color = Color3.fromRGB(105, 215, 255),
+		Items = {
+			{Name = "+100 Gems", Id = 3304033536},
+			{Name = "+500 Gems", Id = 3304033742},
+			{Name = "+1000 Gems", Id = 3304033861},
+			{Name = "+10K Gems", Id = 3304033993},
+		}
+	},
 }
+
+local gamePassProductIndex = {}
+local gamePassButtonIndex = {}
+local serverLuckStep = 0
+local serverLuckMinutes = 15
+
+for _, zone in ipairs(gamePassItems) do
+	for _, item in ipairs(zone.Items) do
+		gamePassProductIndex[item.Id] = item
+	end
+end
+
+local function fireProductSignal(id)
+	pcall(function()
+		MarketplaceService:SignalPromptProductPurchaseFinished(
+			player.UserId,
+			id,
+			true
+		)
+	end)
+end
+
+local function checkGamePassOwned(id)
+	local ok, result = pcall(function()
+		return MarketplaceService:UserOwnsGamePassAsync(player.UserId, id)
+	end)
+
+	if ok then
+		return result == true
+	end
+
+	return false
+end
+
+local function checkOnceItemOwned(item)
+	if not item.Once then
+		return false
+	end
+
+	return checkGamePassOwned(item.Id)
+end
 
 local gamePassPage = Instance.new("Frame")
 gamePassPage.Name = "GamePassPage"
@@ -2881,98 +2974,162 @@ gamePassTitle.TextXAlignment = Enum.TextXAlignment.Left
 gamePassTitle.Parent = gamePassPanel
 
 local gamePassInfo = Instance.new("TextLabel")
-gamePassInfo.Size = UDim2.new(1, -30, 0, 24)
+gamePassInfo.Size = UDim2.new(1, -30, 0, 22)
 gamePassInfo.Position = UDim2.fromOffset(15, 43)
 gamePassInfo.BackgroundTransparency = 1
-gamePassInfo.Text = "Money & Gems"
+gamePassInfo.Text = "PACKS • ITEMS • SERVER LUCK • MONEY • GEMS"
 gamePassInfo.TextColor3 = THEME.TextMuted
 gamePassInfo.Font = FONT_REGULAR
-gamePassInfo.TextSize = 11
+gamePassInfo.TextSize = 10
 gamePassInfo.TextXAlignment = Enum.TextXAlignment.Left
 gamePassInfo.Parent = gamePassPanel
 
-local gamePassList = Instance.new("ScrollingFrame")
-gamePassList.Name = "GamePassList"
-gamePassList.Size = UDim2.new(1, -30, 1, -88)
-gamePassList.Position = UDim2.fromOffset(15, 73)
-gamePassList.BackgroundTransparency = 1
-gamePassList.BorderSizePixel = 0
-gamePassList.CanvasSize = UDim2.new(0, 0, 0, 0)
-gamePassList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-gamePassList.ScrollBarThickness = 2
-gamePassList.ScrollBarImageColor3 = Color3.fromRGB(88, 123, 140)
-gamePassList.Parent = gamePassPanel
+local gamePassStatus = Instance.new("TextLabel")
+gamePassStatus.AnchorPoint = Vector2.new(1, 0)
+gamePassStatus.Size = UDim2.new(0, 300, 0, 22)
+gamePassStatus.Position = UDim2.new(1, -15, 0, 43)
+gamePassStatus.BackgroundTransparency = 1
+gamePassStatus.Text = ""
+gamePassStatus.TextColor3 = THEME.TextMuted
+gamePassStatus.Font = FONT_BOLD
+gamePassStatus.TextSize = 10
+gamePassStatus.TextXAlignment = Enum.TextXAlignment.Right
+gamePassStatus.Parent = gamePassPanel
 
-local gamePassLayout = Instance.new("UIListLayout")
-gamePassLayout.Padding = UDim.new(0, 8)
-gamePassLayout.SortOrder = Enum.SortOrder.LayoutOrder
-gamePassLayout.Parent = gamePassList
+local function setGamePassStatus(text, color)
+	gamePassStatus.Text = text
+	gamePassStatus.TextColor3 = color or THEME.TextMuted
 
-local function fireGamePassSignal(id)
-	pcall(function()
-		MarketplaceService:SignalPromptProductPurchaseFinished(
-			player.UserId,
-			id,
-			true
-		)
+	task.delay(2, function()
+		if gamePassStatus.Parent and gamePassStatus.Text == text then
+			gamePassStatus.Text = ""
+		end
 	end)
 end
 
-local function createGamePassButton(item, order)
+local gamePassScroll = Instance.new("ScrollingFrame")
+gamePassScroll.Name = "GamePassScroll"
+gamePassScroll.Size = UDim2.new(1, -30, 1, -78)
+gamePassScroll.Position = UDim2.fromOffset(15, 73)
+gamePassScroll.BackgroundTransparency = 1
+gamePassScroll.BorderSizePixel = 0
+gamePassScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+gamePassScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+gamePassScroll.ScrollBarThickness = 2
+gamePassScroll.ScrollBarImageColor3 = Color3.fromRGB(88, 123, 140)
+gamePassScroll.Parent = gamePassPanel
+
+local gamePassLayout = Instance.new("UIListLayout")
+gamePassLayout.Padding = UDim.new(0, 10)
+gamePassLayout.SortOrder = Enum.SortOrder.LayoutOrder
+gamePassLayout.Parent = gamePassScroll
+
+local function updateServerLuckButton(item)
+	local data = gamePassButtonIndex[item.Id]
+
+	if not data then
+		return
+	end
+
+	if serverLuckStep == 0 then
+		data.Button.Text = ""
+		data.NameLabel.Text = item.Name
+		data.ActionLabel.Text = "BUY"
+		data.ActionLabel.BackgroundColor3 = data.Color
+	elseif serverLuckStep == 1 then
+		data.Button.Text = ""
+		data.NameLabel.Text = "Server Luck X3"
+		data.ActionLabel.Text = "BUY"
+		data.ActionLabel.BackgroundColor3 = data.Color
+	elseif serverLuckStep == 2 then
+		data.Button.Text = ""
+		data.NameLabel.Text = "Server Luck X4"
+		data.ActionLabel.Text = "BUY"
+		data.ActionLabel.BackgroundColor3 = data.Color
+	elseif serverLuckStep == 3 then
+		data.Button.Text = ""
+		data.NameLabel.Text = "Server Luck X5"
+		data.ActionLabel.Text = "BUY"
+		data.ActionLabel.BackgroundColor3 = data.Color
+	else
+		data.Button.Text = ""
+		data.NameLabel.Text = "Server Luck X5"
+		data.ActionLabel.Text = "+" .. tostring(serverLuckMinutes) .. " MIN"
+		data.ActionLabel.BackgroundColor3 = data.Color
+	end
+end
+
+local function createGamePassButton(parent, item, accentColor, order)
 	local button = Instance.new("TextButton")
-	button.Name = "GamePass_" .. tostring(item.Id)
-	button.Size = UDim2.new(1, 0, 0, 48)
+	button.Name = "Purchase_" .. tostring(item.Id)
+	button.Size = UDim2.new(1, 0, 0, 46)
 	button.LayoutOrder = order
 	button.BackgroundColor3 = THEME.Card
 	button.BorderSizePixel = 0
 	button.Text = ""
 	button.AutoButtonColor = false
-	button.Parent = gamePassList
+	button.Parent = parent
 
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 9)
 
 	local stroke = Instance.new("UIStroke", button)
 	stroke.Color = THEME.Border
 	stroke.Thickness = 1
 
+	local accent = Instance.new("Frame")
+	accent.Size = UDim2.new(0, 4, 1, -12)
+	accent.Position = UDim2.fromOffset(7, 6)
+	accent.BackgroundColor3 = accentColor
+	accent.BorderSizePixel = 0
+	accent.Parent = button
+
+	Instance.new("UICorner", accent).CornerRadius = UDim.new(1, 0)
+
 	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, -110, 1, 0)
-	nameLabel.Position = UDim2.fromOffset(18, 0)
+	nameLabel.Size = UDim2.new(1, -125, 1, 0)
+	nameLabel.Position = UDim2.fromOffset(20, 0)
 	nameLabel.BackgroundTransparency = 1
-	nameLabel.Text = string.upper(item.Name)
+	nameLabel.Text = item.Name
 	nameLabel.TextColor3 = THEME.Text
 	nameLabel.Font = FONT_BOLD
-	nameLabel.TextSize = 13
+	nameLabel.TextSize = 11
 	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
 	nameLabel.Parent = button
 
-	local buyButton = Instance.new("TextButton")
-	buyButton.AnchorPoint = Vector2.new(1, 0.5)
-	buyButton.Size = UDim2.fromOffset(70, 30)
-	buyButton.Position = UDim2.new(1, -10, 0.5, 0)
-	buyButton.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
-	buyButton.BorderSizePixel = 0
-	buyButton.Text = "BUY"
-	buyButton.TextColor3 = THEME.ActionText
-	buyButton.Font = FONT_BOLD
-	buyButton.TextSize = 10
-	buyButton.AutoButtonColor = false
-	buyButton.Parent = button
+	local actionLabel = Instance.new("TextLabel")
+	actionLabel.AnchorPoint = Vector2.new(1, 0.5)
+	actionLabel.Size = UDim2.fromOffset(92, 28)
+	actionLabel.Position = UDim2.new(1, -10, 0.5, 0)
+	actionLabel.BackgroundColor3 = accentColor
+	actionLabel.BorderSizePixel = 0
+	actionLabel.Text = "BUY"
+	actionLabel.TextColor3 = THEME.ActionText
+	actionLabel.Font = FONT_BOLD
+	actionLabel.TextSize = 9
+	actionLabel.Parent = button
 
-	Instance.new("UICorner", buyButton).CornerRadius = UDim.new(0, 8)
+	Instance.new("UICorner", actionLabel).CornerRadius = UDim.new(0, 7)
 
-	buyButton.MouseEnter:Connect(function()
+	gamePassButtonIndex[item.Id] = {
+		Button = button,
+		NameLabel = nameLabel,
+		ActionLabel = actionLabel,
+		Color = accentColor,
+		Item = item
+	}
+
+	button.MouseEnter:Connect(function()
 		TweenService:Create(button, TweenInfo.new(0.12), {
 			BackgroundColor3 = THEME.CardHover
 		}):Play()
 
 		TweenService:Create(stroke, TweenInfo.new(0.12), {
-			Color = Color3.fromRGB(77, 225, 132)
+			Color = accentColor
 		}):Play()
 	end)
 
-	buyButton.MouseLeave:Connect(function()
+	button.MouseLeave:Connect(function()
 		TweenService:Create(button, TweenInfo.new(0.12), {
 			BackgroundColor3 = THEME.Card
 		}):Play()
@@ -2982,29 +3139,186 @@ local function createGamePassButton(item, order)
 		}):Play()
 	end)
 
-	buyButton.MouseButton1Click:Connect(function()
-		buyButton.Text = "..."
-
-		fireGamePassSignal(item.Id)
-
-		task.delay(0.35, function()
-			if buyButton.Parent then
-				buyButton.Text = "SENT"
-				buyButton.BackgroundColor3 = Color3.fromRGB(77, 225, 132)
+	button.MouseButton1Click:Connect(function()
+		if item.Once then
+			if checkOnceItemOwned(item) then
+				actionLabel.Text = "BOUGHT"
+				actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+				setGamePassStatus(string.upper(item.Name) .. " ALREADY OWNED", Color3.fromRGB(77, 225, 132))
+				return
 			end
-		end)
+		end
 
-		task.delay(1.2, function()
-			if buyButton.Parent then
-				buyButton.Text = "BUY"
-				buyButton.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+		if item.Luck then
+			if serverLuckStep < 4 then
+				local expectedStep = serverLuckStep + 1
+
+				if item.Luck ~= expectedStep + 1 then
+					setGamePassStatus("BUY THE NEXT SERVER LUCK STEP", Color3.fromRGB(255, 180, 90))
+					return
+				end
+
+				fireProductSignal(item.Id)
+
+				serverLuckStep += 1
+				serverLuckMinutes = 15
+
+				for _, luckItem in ipairs(gamePassItems[3].Items) do
+					updateServerLuckButton(luckItem)
+				end
+
+				setGamePassStatus(
+					"SERVER LUCK X" .. tostring(item.Luck) .. " • 15 MIN",
+					Color3.fromRGB(77, 225, 132)
+				)
+
+				return
 			end
-		end)
+
+			fireProductSignal(item.Id)
+
+			serverLuckMinutes += 15
+
+			for _, luckItem in ipairs(gamePassItems[3].Items) do
+				updateServerLuckButton(luckItem)
+			end
+
+			setGamePassStatus(
+				"SERVER LUCK X5 • " .. tostring(serverLuckMinutes) .. " MIN",
+				Color3.fromRGB(77, 225, 132)
+			)
+
+			return
+		end
+
+		fireProductSignal(item.Id)
+
+		if item.Once then
+			actionLabel.Text = "SENT"
+			actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+
+			task.delay(1, function()
+				if actionLabel.Parent then
+					local owned = checkOnceItemOwned(item)
+
+					if owned then
+						actionLabel.Text = "BOUGHT"
+						actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+					else
+						actionLabel.Text = "BUY"
+						actionLabel.BackgroundColor3 = accentColor
+					end
+				end
+			end)
+		else
+			actionLabel.Text = "SENT"
+			actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+
+			task.delay(0.8, function()
+				if actionLabel.Parent then
+					actionLabel.Text = "BUY"
+					actionLabel.BackgroundColor3 = accentColor
+				end
+			end)
+		end
+
+		setGamePassStatus(
+			"SENT • " .. string.upper(item.Name),
+			Color3.fromRGB(77, 225, 132)
+		)
 	end)
+
+	if item.Once then
+		task.spawn(function()
+			if checkOnceItemOwned(item) then
+				actionLabel.Text = "BOUGHT"
+				actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
+			end
+		end)
+	end
+
+	return button
 end
 
-for order, item in ipairs(gamePassItems) do
-	createGamePassButton(item, order)
+local function createGamePassZone(zone, zoneOrder)
+	local card = Instance.new("Frame")
+	card.Name = zone.Category .. "Zone"
+	card.Size = UDim2.new(1, 0, 0, 0)
+	card.AutomaticSize = Enum.AutomaticSize.Y
+	card.BackgroundColor3 = THEME.Panel
+	card.BorderSizePixel = 0
+	card.LayoutOrder = zoneOrder
+	card.Parent = gamePassScroll
+
+	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 11)
+
+	local cardStroke = Instance.new("UIStroke", card)
+	cardStroke.Color = THEME.Border
+	cardStroke.Thickness = 1
+
+	local titleDot = Instance.new("Frame")
+	titleDot.Size = UDim2.fromOffset(9, 9)
+	titleDot.Position = UDim2.fromOffset(16, 17)
+	titleDot.BackgroundColor3 = zone.Color
+	titleDot.BorderSizePixel = 0
+	titleDot.Parent = card
+
+	Instance.new("UICorner", titleDot).CornerRadius = UDim.new(1, 0)
+
+	local zoneTitle = Instance.new("TextLabel")
+	zoneTitle.Size = UDim2.new(1, -40, 0, 25)
+	zoneTitle.Position = UDim2.fromOffset(32, 9)
+	zoneTitle.BackgroundTransparency = 1
+	zoneTitle.Text = string.upper(zone.Category)
+	zoneTitle.TextColor3 = THEME.Text
+	zoneTitle.Font = FONT_BOLD
+	zoneTitle.TextSize = 12
+	zoneTitle.TextXAlignment = Enum.TextXAlignment.Left
+	zoneTitle.Parent = card
+
+	local divider = Instance.new("Frame")
+	divider.Size = UDim2.new(1, -32, 0, 1)
+	divider.Position = UDim2.fromOffset(16, 42)
+	divider.BackgroundColor3 = THEME.Border
+	divider.BackgroundTransparency = 0.25
+	divider.BorderSizePixel = 0
+	divider.Parent = card
+
+	local list = Instance.new("Frame")
+	list.Name = "ItemList"
+	list.Size = UDim2.new(1, -32, 0, 0)
+	list.Position = UDim2.fromOffset(16, 52)
+	list.AutomaticSize = Enum.AutomaticSize.Y
+	list.BackgroundTransparency = 1
+	list.Parent = card
+
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Padding = UDim.new(0, 6)
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Parent = list
+
+	for itemOrder, item in ipairs(zone.Items) do
+		createGamePassButton(
+			list,
+			item,
+			zone.Color,
+			itemOrder
+		)
+	end
+
+	local function updateCardHeight()
+		task.defer(function()
+			local height = listLayout.AbsoluteContentSize.Y + 66
+			card.Size = UDim2.new(1, 0, 0, height)
+		end)
+	end
+
+	listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCardHeight)
+	updateCardHeight()
+
+	return card
 end
 
-registerPage("Game Pass", {gamePassPage})
+for zoneOrder, zone in ipairs(gamePassItems) do
+	createGamePassZone(zone, zoneOrder)
+end
