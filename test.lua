@@ -2904,6 +2904,7 @@ local gamePassProductIndex = {}
 local gamePassButtonIndex = {}
 local currentLuckMultiplier = 1
 local currentLuckTime = nil
+local nextPurchaseAt = 0
 
 for _, zone in ipairs(gamePassItems) do
 	for _, item in ipairs(zone.Items) do
@@ -2911,14 +2912,14 @@ for _, zone in ipairs(gamePassItems) do
 	end
 end
 
-local function fireProductSignal(id)
-	pcall(function()
-		MarketplaceService:SignalPromptProductPurchaseFinished(
-			player.UserId,
-			id,
-			true
-		)
+local function promptProduct(id)
+	local success, err = pcall(function()
+		MarketplaceService:PromptProductPurchase(player, id)
 	end)
+	if not success then
+		warn("[Level1 Hub] Purchase prompt failed for product", id, err)
+	end
+	return success
 end
 
 local function checkGamePassOwned(id)
@@ -3134,6 +3135,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 	end)
 
 	button.MouseButton1Click:Connect(function()
+		if os.clock() < nextPurchaseAt then return end
 		if item.Once then
 			if checkOnceItemOwned(item) then
 				actionLabel.Text = "BOUGHT"
@@ -3147,24 +3149,25 @@ local function createGamePassButton(parent, item, accentColor, order)
 			updateServerLuckButtons()
 			local nextLuck = math.clamp(currentLuckMultiplier + 1, 2, 5)
 			if item.Luck ~= nextLuck then return end
-			local success, err = pcall(function()
-				MarketplaceService:PromptProductPurchase(player, item.Id)
-			end)
-			if not success then
-				warn("[Level1 Hub] Server Luck purchase prompt failed:", err)
-				setGamePassStatus("PURCHASE PROMPT FAILED", Color3.fromRGB(255, 180, 90))
-			end
-			updateServerLuckButtons()
+		end
+
+		nextPurchaseAt = os.clock() + 2
+		local success = promptProduct(item.Id)
+		if not success then
+			setGamePassStatus("PURCHASE PROMPT FAILED • CHECK OUTPUT", Color3.fromRGB(255, 180, 90))
 			return
 		end
 
-		fireProductSignal(item.Id)
+		if item.Luck then
+			setGamePassStatus("CHECKING SERVER LUCK DISPLAY", THEME.TextMuted)
+			return
+		end
 
 		if item.Once then
-			actionLabel.Text = "SENT"
+			actionLabel.Text = "WAIT"
 			actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
 
-			task.delay(1, function()
+			task.delay(2, function()
 				if actionLabel.Parent then
 					local owned = checkOnceItemOwned(item)
 
@@ -3178,10 +3181,10 @@ local function createGamePassButton(parent, item, accentColor, order)
 				end
 			end)
 		else
-			actionLabel.Text = "SENT"
+			actionLabel.Text = "WAIT"
 			actionLabel.BackgroundColor3 = Color3.fromRGB(77, 190, 112)
 
-			task.delay(0.8, function()
+			task.delay(2, function()
 				if actionLabel.Parent then
 					actionLabel.Text = "BUY"
 					actionLabel.BackgroundColor3 = accentColor
@@ -3190,7 +3193,7 @@ local function createGamePassButton(parent, item, accentColor, order)
 		end
 
 		setGamePassStatus(
-			"SENT • " .. string.upper(item.Name),
+			"PURCHASE PROMPT • " .. string.upper(item.Name),
 			Color3.fromRGB(77, 225, 132)
 		)
 	end)
