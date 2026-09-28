@@ -211,7 +211,6 @@ end
 
 --========================================================
 -- SWIM SPEED
--- ว่ายน้ำ + ดำน้ำ + ลอยน้ำ
 --========================================================
 
 local function StopSwimSpeed()
@@ -257,94 +256,52 @@ local function ApplySwimSpeed()
                     return
                 end
 
-                local camera =
-                    workspace.CurrentCamera
+                local camera = workspace.CurrentCamera
 
                 if not camera then
                     return
                 end
 
-                local direction =
-                    Vector3.zero
+                local direction = Vector3.zero
+                local look = camera.CFrame.LookVector
+                local right = camera.CFrame.RightVector
 
-                local look =
-                    camera.CFrame.LookVector
-
-                local right =
-                    camera.CFrame.RightVector
-
-                -- W = ไปตามทิศกล้อง
-                if UserInputService:IsKeyDown(
-                    Enum.KeyCode.W
-                ) then
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
                     direction += look
                 end
 
-                -- S = ถอยตามทิศกล้อง
-                if UserInputService:IsKeyDown(
-                    Enum.KeyCode.S
-                ) then
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
                     direction -= look
                 end
 
-                -- A = ซ้าย
-                if UserInputService:IsKeyDown(
-                    Enum.KeyCode.A
-                ) then
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
                     direction -= right
                 end
 
-                -- D = ขวา
-                if UserInputService:IsKeyDown(
-                    Enum.KeyCode.D
-                ) then
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
                     direction += right
                 end
 
-                -- Space = ลอยขึ้น
-                if UserInputService:IsKeyDown(
-                    Enum.KeyCode.Space
-                ) then
-                    direction += Vector3.new(
-                        0,
-                        1,
-                        0
-                    )
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    direction += Vector3.new(0, 1, 0)
                 end
 
-                -- Ctrl = ดำน้ำลง
-                if UserInputService:IsKeyDown(
-                    Enum.KeyCode.LeftControl
-                ) then
-                    direction -= Vector3.new(
-                        0,
-                        1,
-                        0
-                    )
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+                    direction -= Vector3.new(0, 1, 0)
                 end
 
-                -- ไม่มี input
                 if direction.Magnitude <= 0.01 then
                     return
                 end
 
-                local speed =
-                    math.clamp(
-                        Config.SwimSpeed,
-                        8,
-                        1000
-                    )
-
-                -- Normalize เพื่อให้ความเร็ว
-                -- เท่ากันไม่ว่าจะกดกี่ปุ่มพร้อมกัน
-                direction =
-                    direction.Unit
-
-                Humanoid.AutoRotate = true
-                Humanoid:Move(direction, false)
+                local speed = math.clamp(
+                    Config.SwimSpeed,
+                    8,
+                    1000
+                )
 
                 RootPart.AssemblyLinearVelocity =
-                    direction * speed
+                    direction.Unit * speed
             end
         )
 end
