@@ -256,6 +256,14 @@ local function ApplySwimSpeed()
                     return
                 end
 
+                local moveDirection =
+                    Humanoid.MoveDirection
+
+                -- ไม่กดเดิน = ไม่บังคับให้ตัวละครเคลื่อนที่
+                if moveDirection.Magnitude <= 0.01 then
+                    return
+                end
+
                 local speed =
                     math.clamp(
                         Config.SwimSpeed,
@@ -266,24 +274,15 @@ local function ApplySwimSpeed()
                 local velocity =
                     RootPart.AssemblyLinearVelocity
 
-                local horizontal =
+                local direction =
+                    moveDirection.Unit
+
+                RootPart.AssemblyLinearVelocity =
                     Vector3.new(
-                        velocity.X,
-                        0,
-                        velocity.Z
+                        direction.X * speed,
+                        velocity.Y,
+                        direction.Z * speed
                     )
-
-                if horizontal.Magnitude > 0.05 then
-                    local direction =
-                        horizontal.Unit
-
-                    RootPart.AssemblyLinearVelocity =
-                        Vector3.new(
-                            direction.X * speed,
-                            velocity.Y,
-                            direction.Z * speed
-                        )
-                end
             end
         )
 end
