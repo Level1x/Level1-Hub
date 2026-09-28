@@ -256,25 +256,10 @@ local function ApplySwimSpeed()
                     return
                 end
 
-                -- ใช้ input ของผู้เล่นโดยตรง
-                local moving = false
-
-                if UserInputService:IsKeyDown(Enum.KeyCode.W)
-                    or UserInputService:IsKeyDown(Enum.KeyCode.A)
-                    or UserInputService:IsKeyDown(Enum.KeyCode.S)
-                    or UserInputService:IsKeyDown(Enum.KeyCode.D) then
-
-                    moving = true
-                end
-
-                -- ไม่ได้กด WASD = ห้ามแก้ velocity
-                if not moving then
-                    return
-                end
-
                 local moveDirection =
                     Humanoid.MoveDirection
 
+                -- ไม่มี input
                 if moveDirection.Magnitude <= 0.01 then
                     return
                 end
@@ -289,6 +274,7 @@ local function ApplySwimSpeed()
                 local velocity =
                     RootPart.AssemblyLinearVelocity
 
+                -- เอาเฉพาะทิศทางแนวนอน
                 local horizontal =
                     Vector3.new(
                         moveDirection.X,
@@ -303,6 +289,9 @@ local function ApplySwimSpeed()
                 horizontal =
                     horizontal.Unit * speed
 
+                -- สำคัญ:
+                -- ไม่แตะ Y เพื่อให้ Roblox ควบคุม
+                -- การขึ้น/ลงใต้น้ำเอง
                 RootPart.AssemblyLinearVelocity =
                     Vector3.new(
                         horizontal.X,
