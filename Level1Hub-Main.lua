@@ -52,7 +52,7 @@ local Config = {
     WalkSpeed = DefaultWalkSpeed,
 
     SwimSpeedEnabled = false,
-    SwimSpeed = DefaultSwimSpeed,
+    SwimSpeed = 50,
 
     JumpPowerEnabled = false,
     JumpPower = DefaultJumpPower,
