@@ -211,6 +211,7 @@ end
 
 --========================================================
 -- SWIM SPEED
+-- ว่ายน้ำ + ดำน้ำ + ลอยน้ำ
 --========================================================
 
 local function StopSwimSpeed()
@@ -256,11 +257,72 @@ local function ApplySwimSpeed()
                     return
                 end
 
-                local moveDirection =
-                    Humanoid.MoveDirection
+                local camera =
+                    workspace.CurrentCamera
 
-                -- ไม่มี input
-                if moveDirection.Magnitude <= 0.01 then
+                if not camera then
+                    return
+                end
+
+                local direction =
+                    Vector3.zero
+
+                local look =
+                    camera.CFrame.LookVector
+
+                local right =
+                    camera.CFrame.RightVector
+
+                -- เดินหน้า / ถอยหลัง
+                if UserInputService:IsKeyDown(
+                    Enum.KeyCode.W
+                ) then
+                    direction += look
+                end
+
+                if UserInputService:IsKeyDown(
+                    Enum.KeyCode.S
+                ) then
+                    direction -= look
+                end
+
+                -- ซ้าย / ขวา
+                if UserInputService:IsKeyDown(
+                    Enum.KeyCode.A
+                ) then
+                    direction -= right
+                end
+
+                if UserInputService:IsKeyDown(
+                    Enum.KeyCode.D
+                ) then
+                    direction += right
+                end
+
+                -- ลอยขึ้น
+                if UserInputService:IsKeyDown(
+                    Enum.KeyCode.Space
+                ) then
+                    direction += Vector3.new(
+                        0,
+                        1,
+                        0
+                    )
+                end
+
+                -- ดำน้ำลง
+                if UserInputService:IsKeyDown(
+                    Enum.KeyCode.LeftControl
+                ) then
+                    direction -= Vector3.new(
+                        0,
+                        1,
+                        0
+                    )
+                end
+
+                -- ไม่มี input = ไม่บังคับ velocity
+                if direction.Magnitude <= 0.01 then
                     return
                 end
 
@@ -271,33 +333,11 @@ local function ApplySwimSpeed()
                         1000
                     )
 
-                local velocity =
-                    RootPart.AssemblyLinearVelocity
+                direction =
+                    direction.Unit * speed
 
-                -- เอาเฉพาะทิศทางแนวนอน
-                local horizontal =
-                    Vector3.new(
-                        moveDirection.X,
-                        0,
-                        moveDirection.Z
-                    )
-
-                if horizontal.Magnitude <= 0.01 then
-                    return
-                end
-
-                horizontal =
-                    horizontal.Unit * speed
-
-                -- สำคัญ:
-                -- ไม่แตะ Y เพื่อให้ Roblox ควบคุม
-                -- การขึ้น/ลงใต้น้ำเอง
                 RootPart.AssemblyLinearVelocity =
-                    Vector3.new(
-                        horizontal.X,
-                        velocity.Y,
-                        horizontal.Z
-                    )
+                    direction
             end
         )
 end
