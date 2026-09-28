@@ -217,8 +217,17 @@ local function ApplySwimSpeed()
         return
     end
 
-    Humanoid.SwimSpeed = 
-        DefaultSwimSpeed
+    if Config.SwimSpeedEnabled then
+        Humanoid.SwimSpeed =
+            math.clamp(
+                Config.SwimSpeed,
+                8,
+                1000
+            )
+    else
+        Humanoid.SwimSpeed =
+            DefaultSwimSpeed
+    end
 end
 
 --========================================================
@@ -2794,7 +2803,7 @@ local function CreateSlider(
         UDim2.new(
             0,
             0,
-            1,
+                       1,
             0
         )
 
@@ -3160,7 +3169,7 @@ local function UpdateStatus()
             Config.WalkSpeedEnabled
         )
         .. "\n\n"
-        
+
         .. "Swim Speed: "
         .. tostring(
             Config.SwimSpeedEnabled
@@ -3683,13 +3692,16 @@ end
 Close.MouseButton1Click:Connect(
     function()
         Config.WalkSpeedEnabled = false
+        Config.SwimSpeedEnabled = false
         Config.JumpPowerEnabled = false
         Config.NoClip = false
         Config.Fly = false
         Config.GravityEnabled = false
         Config.AntiKnockback = false
         Config.AntiRagdoll = false
+
         Config.WalkSpeed = DefaultWalkSpeed
+        Config.SwimSpeed = DefaultSwimSpeed
         Config.JumpPower = DefaultJumpPower
         Config.FlySpeed = DefaultFlySpeed
         Config.Gravity = DefaultGravity
@@ -3709,6 +3721,9 @@ Close.MouseButton1Click:Connect(
             pcall(function()
                 Humanoid.WalkSpeed =
                     DefaultWalkSpeed
+
+                Humanoid.SwimSpeed =
+                    DefaultSwimSpeed
 
                 Humanoid.UseJumpPower =
                     true
@@ -3769,6 +3784,7 @@ end
 
 local function ResetPlayerOnDeath()
     Config.WalkSpeedEnabled = false
+    Config.SwimSpeedEnabled = false
     Config.JumpPowerEnabled = false
     Config.NoClip = false
     Config.Fly = false
@@ -3777,6 +3793,7 @@ local function ResetPlayerOnDeath()
     Config.AntiRagdoll = false
 
     Config.WalkSpeed = DefaultWalkSpeed
+    Config.SwimSpeed = DefaultSwimSpeed
     Config.JumpPower = DefaultJumpPower
     Config.FlySpeed = DefaultFlySpeed
     Config.Gravity = DefaultGravity
@@ -3800,6 +3817,9 @@ local function ResetPlayerOnDeath()
         SafeCall(function()
             Humanoid.WalkSpeed =
                 DefaultWalkSpeed
+
+            Humanoid.SwimSpeed =
+                DefaultSwimSpeed
 
             Humanoid.UseJumpPower =
                 true
@@ -3828,6 +3848,11 @@ local function ResetPlayerOnDeath()
 
     SafeToggleSet(
         "Walk Speed",
+        false
+    )
+
+    SafeToggleSet(
+        "Swim Speed",
         false
     )
 
@@ -3864,6 +3889,11 @@ local function ResetPlayerOnDeath()
     SafeSliderSet(
         "Walk Speed Value",
         DefaultWalkSpeed
+    )
+
+    SafeSliderSet(
+        "Swim Speed Value",
+        DefaultSwimSpeed
     )
 
     SafeSliderSet(
@@ -3929,6 +3959,12 @@ LocalPlayer.CharacterAdded:Connect(
         task.wait(0.5)
 
         SafeCall(RefreshAllESP)
+
+        -- ใช้ค่าปัจจุบันของ Swim Speed กับตัวละครใหม่
+        SafeCall(ApplyWalkSpeed)
+        SafeCall(ApplySwimSpeed)
+        SafeCall(ApplyJumpPower)
+        SafeCall(ApplyGravity)
     end
 )
 
@@ -4011,5 +4047,6 @@ SafeCall(UpdateStatus)
 SelectTab("Main")
 
 SafeCall(ApplyWalkSpeed)
+SafeCall(ApplySwimSpeed)
 SafeCall(ApplyJumpPower)
 SafeCall(ApplyGravity)
