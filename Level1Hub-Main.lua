@@ -273,33 +273,35 @@ local function ApplySwimSpeed()
                 local right =
                     camera.CFrame.RightVector
 
-                -- เดินหน้า / ถอยหลัง
+                -- W = ไปตามทิศกล้อง
                 if UserInputService:IsKeyDown(
                     Enum.KeyCode.W
                 ) then
                     direction += look
                 end
 
+                -- S = ถอยตามทิศกล้อง
                 if UserInputService:IsKeyDown(
                     Enum.KeyCode.S
                 ) then
                     direction -= look
                 end
 
-                -- ซ้าย / ขวา
+                -- A = ซ้าย
                 if UserInputService:IsKeyDown(
                     Enum.KeyCode.A
                 ) then
                     direction -= right
                 end
 
+                -- D = ขวา
                 if UserInputService:IsKeyDown(
                     Enum.KeyCode.D
                 ) then
                     direction += right
                 end
 
-                -- ลอยขึ้น
+                -- Space = ลอยขึ้น
                 if UserInputService:IsKeyDown(
                     Enum.KeyCode.Space
                 ) then
@@ -310,7 +312,7 @@ local function ApplySwimSpeed()
                     )
                 end
 
-                -- ดำน้ำลง
+                -- Ctrl = ดำน้ำลง
                 if UserInputService:IsKeyDown(
                     Enum.KeyCode.LeftControl
                 ) then
@@ -321,7 +323,7 @@ local function ApplySwimSpeed()
                     )
                 end
 
-                -- ไม่มี input = ไม่บังคับ velocity
+                -- ไม่มี input
                 if direction.Magnitude <= 0.01 then
                     return
                 end
@@ -333,11 +335,13 @@ local function ApplySwimSpeed()
                         1000
                     )
 
+                -- Normalize เพื่อให้ความเร็ว
+                -- เท่ากันไม่ว่าจะกดกี่ปุ่มพร้อมกัน
                 direction =
-                    direction.Unit * speed
+                    direction.Unit
 
                 RootPart.AssemblyLinearVelocity =
-                    direction
+                    direction * speed
             end
         )
 end
