@@ -340,6 +340,9 @@ local function ApplySwimSpeed()
                 direction =
                     direction.Unit
 
+                Humanoid.AutoRotate = true
+                Humanoid:Move(direction, false)
+
                 RootPart.AssemblyLinearVelocity =
                     direction * speed
             end
