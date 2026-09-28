@@ -52,6 +52,9 @@ local Config = {
     WalkSpeedEnabled = false,
     WalkSpeed = DefaultWalkSpeed,
 
+    SwimSpeedEnabled = false,
+    SwimSpeed = DefaultSwimSpeed,
+
     JumpPowerEnabled = false,
     JumpPower = DefaultJumpPower,
 
@@ -3157,6 +3160,12 @@ local function UpdateStatus()
             Config.WalkSpeedEnabled
         )
         .. "\n\n"
+        
+        .. "Swim Speed: "
+        .. tostring(
+            Config.SwimSpeedEnabled
+        )
+        .. "\n\n"
 
         .. "Jump Power: "
         .. tostring(
@@ -3221,6 +3230,34 @@ CreateSlider(
             value
 
         ApplyWalkSpeed()
+        UpdateStatus()
+    end
+)
+
+CreateToggle(
+    PlayerTab,
+    "Swim Speed",
+    Config.SwimSpeedEnabled,
+    function(value)
+        Config.SwimSpeedEnabled =
+            value
+
+        ApplySwimSpeed()
+        UpdateStatus()
+    end
+)
+
+CreateSlider(
+    PlayerTab,
+    "Swim Speed Value",
+    8,
+    1000,
+    Config.SwimSpeed,
+    function(value)
+        Config.SwimSpeed =
+            value
+
+        ApplySwimSpeed()
         UpdateStatus()
     end
 )
