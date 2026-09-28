@@ -33,6 +33,7 @@ local Colors = {
 --========================================================
 
 local DefaultWalkSpeed = 16
+local DefaultSwimSpeed = 14
 local DefaultJumpPower = 50
 local DefaultGravity = 196.2
 local DefaultFlySpeed = 100
@@ -52,7 +53,7 @@ local Config = {
     WalkSpeed = DefaultWalkSpeed,
 
     SwimSpeedEnabled = false,
-    SwimSpeed = 50,
+    SwimSpeed = DefaultSwimSpeed,
 
     JumpPowerEnabled = false,
     JumpPower = DefaultJumpPower,
@@ -207,7 +208,6 @@ local function ApplyWalkSpeed()
     end
 end
 
-
 --========================================================
 -- SWIM SPEED
 --========================================================
@@ -217,24 +217,36 @@ local function ApplySwimSpeed()
         return
     end
 
-    if not Config.SwimSpeedEnabled then
-        ApplyWalkSpeed()
-        return
-    end
-
-    if Humanoid:GetState() ==
-        Enum.HumanoidStateType.Swimming then
-
+    if Config.SwimSpeedEnabled
+        and Humanoid:GetState() == Enum.HumanoidStateType.Swimming then
         Humanoid.WalkSpeed =
             math.clamp(
                 Config.SwimSpeed,
-                16,
+                1,
                 1000
             )
     else
         ApplyWalkSpeed()
     end
 end
+
+RunService.Heartbeat:Connect(
+    function()
+        if not Humanoid then
+            return
+        end
+
+        if Config.SwimSpeedEnabled
+            and Humanoid:GetState() == Enum.HumanoidStateType.Swimming then
+            Humanoid.WalkSpeed =
+                math.clamp(
+                    Config.SwimSpeed,
+                    1,
+                    1000
+                )
+        end
+    end
+)
 
 --========================================================
 -- JUMP POWER
@@ -3249,7 +3261,6 @@ CreateToggle(
     Config.SwimSpeedEnabled,
     function(value)
         Config.SwimSpeedEnabled = value
-
         ApplySwimSpeed()
         UpdateStatus()
     end
@@ -3258,41 +3269,15 @@ CreateToggle(
 CreateSlider(
     PlayerTab,
     "Swim Speed Value",
-    16,
+    1,
     1000,
     Config.SwimSpeed,
     function(value)
         Config.SwimSpeed = value
-
         ApplySwimSpeed()
         UpdateStatus()
     end
 )
-
-RunService.Heartbeat:Connect(function()
-    if not Humanoid then
-        return
-    end
-
-    if not Config.SwimSpeedEnabled then
-        return
-    end
-
-    if Humanoid:GetState() ==
-        Enum.HumanoidStateType.Swimming then
-
-        local speed =
-            math.clamp(
-                Config.SwimSpeed,
-                16,
-                1000
-            )
-
-        if Humanoid.WalkSpeed ~= speed then
-            Humanoid.WalkSpeed = speed
-        end
-    end
-end)
 
 CreateToggle(
     PlayerTab,
