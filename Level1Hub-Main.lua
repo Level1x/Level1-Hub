@@ -84,6 +84,7 @@ local CharacterBaseScale = 1
 
 local NoClipConnection
 local FlyConnection
+local SwimSpeedConnection
 local AntiKnockbackConnection
 local AntiRagdollConnection
 
@@ -212,22 +213,79 @@ end
 -- SWIM SPEED
 --========================================================
 
+local function StopSwimSpeed()
+    if SwimSpeedConnection then
+        pcall(function()
+            SwimSpeedConnection:Disconnect()
+        end)
+
+        SwimSpeedConnection = nil
+    end
+end
+
 local function ApplySwimSpeed()
-    if not Humanoid then
+    StopSwimSpeed()
+
+    if not Config.SwimSpeedEnabled then
         return
     end
 
-    if Config.SwimSpeedEnabled then
-        Humanoid.SwimSpeed =
-            math.clamp(
-                Config.SwimSpeed,
-                8,
-                1000
-            )
-    else
-        Humanoid.SwimSpeed =
-            DefaultSwimSpeed
+    if not Humanoid
+        or not RootPart
+        or not Humanoid.Parent
+        or not RootPart.Parent then
+        return
     end
+
+    SwimSpeedConnection =
+        RunService.Heartbeat:Connect(
+            function()
+                if not Config.SwimSpeedEnabled then
+                    return
+                end
+
+                if not Humanoid
+                    or not Humanoid.Parent
+                    or not RootPart
+                    or not RootPart.Parent then
+                    return
+                end
+
+                if Humanoid:GetState()
+                    ~= Enum.HumanoidStateType.Swimming then
+                    return
+                end
+
+                local speed =
+                    math.clamp(
+                        Config.SwimSpeed,
+                        8,
+                        1000
+                    )
+
+                local velocity =
+                    RootPart.AssemblyLinearVelocity
+
+                local horizontal =
+                    Vector3.new(
+                        velocity.X,
+                        0,
+                        velocity.Z
+                    )
+
+                if horizontal.Magnitude > 0.05 then
+                    local direction =
+                        horizontal.Unit
+
+                    RootPart.AssemblyLinearVelocity =
+                        Vector3.new(
+                            direction.X * speed,
+                            velocity.Y,
+                            direction.Z * speed
+                        )
+                end
+            end
+        )
 end
 
 --========================================================
@@ -2803,7 +2861,7 @@ local function CreateSlider(
         UDim2.new(
             0,
             0,
-                       1,
+            1,
             0
         )
 
@@ -3709,6 +3767,7 @@ Close.MouseButton1Click:Connect(
 
         pcall(StopNoClip)
         pcall(StopFly)
+        pcall(StopSwimSpeed)
         pcall(StopAntiKnockback)
         pcall(StopAntiRagdoll)
 
@@ -3721,9 +3780,6 @@ Close.MouseButton1Click:Connect(
             pcall(function()
                 Humanoid.WalkSpeed =
                     DefaultWalkSpeed
-
-                Humanoid.SwimSpeed =
-                    DefaultSwimSpeed
 
                 Humanoid.UseJumpPower =
                     true
@@ -3805,6 +3861,7 @@ local function ResetPlayerOnDeath()
 
     SafeCall(StopNoClip)
     SafeCall(StopFly)
+    SafeCall(StopSwimSpeed)
     SafeCall(StopAntiKnockback)
     SafeCall(StopAntiRagdoll)
 
@@ -3817,9 +3874,6 @@ local function ResetPlayerOnDeath()
         SafeCall(function()
             Humanoid.WalkSpeed =
                 DefaultWalkSpeed
-
-            Humanoid.SwimSpeed =
-                DefaultSwimSpeed
 
             Humanoid.UseJumpPower =
                 true
@@ -3952,19 +4006,21 @@ LocalPlayer.CharacterAdded:Connect(
     function(character)
         SafeCall(DestroyAllESP)
 
+        SafeCall(StopSwimSpeed)
+
         SetCharacter(character)
 
         ConnectDeathReset(character)
 
         task.wait(0.5)
 
-        SafeCall(RefreshAllESP)
-
-        -- ใช้ค่าปัจจุบันของ Swim Speed กับตัวละครใหม่
         SafeCall(ApplyWalkSpeed)
         SafeCall(ApplySwimSpeed)
         SafeCall(ApplyJumpPower)
         SafeCall(ApplyGravity)
+        SafeCall(ApplyScale)
+
+        SafeCall(RefreshAllESP)
     end
 )
 
@@ -4050,3 +4106,4 @@ SafeCall(ApplyWalkSpeed)
 SafeCall(ApplySwimSpeed)
 SafeCall(ApplyJumpPower)
 SafeCall(ApplyGravity)
+SafeCall(ApplyScale)
